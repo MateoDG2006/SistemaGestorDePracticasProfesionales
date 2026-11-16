@@ -3,9 +3,24 @@
 // Primitivas de formulario con soporte de error por campo (formato común §6.1).
 import type { ReactNode } from "react";
 import { useRef, useState } from "react";
-import { LuUpload } from "react-icons/lu";
+import { Upload } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Checkbox as UiCheckbox } from "@/components/ui/checkbox";
+import { Input as UiInput } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select as UiSelect,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea as UiTextarea } from "@/components/ui/textarea";
 import { tamano } from "../_lib/format";
 import { excedePdf, mimePdfInvalido, textoLimitePdf } from "@/src/shared/dominio/reglas";
+
+// shortcut: Base UI Select no acepta value=""; mapear vacío a centinela.
+const VACIO = "__none__";
 
 export function Campo({
   etiqueta,
@@ -19,22 +34,15 @@ export function Campo({
   hint?: string;
 }) {
   return (
-    <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-ink">{etiqueta}</span>
+    <div className="block space-y-1.5">
+      <Label className="text-ink">{etiqueta}</Label>
       {children}
-      {hint && !error && <span className="mt-1 block text-xs text-ink-soft">{hint}</span>}
+      {hint && !error && <span className="block text-xs text-ink-soft">{hint}</span>}
       {error && (
-        <span className="mt-1 block text-xs font-medium text-[#616161]">⚠ {error}</span>
+        <span className="block text-xs font-medium text-[#616161]">⚠ {error}</span>
       )}
-    </label>
+    </div>
   );
-}
-
-const baseInput =
-  "w-full rounded-[var(--radius-panel)] border bg-surface px-3.5 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-ink";
-
-function borde(error?: string) {
-  return error ? "border-[#616161]" : "border-border";
 }
 
 export function Input({
@@ -51,12 +59,13 @@ export function Input({
   error?: string;
 }) {
   return (
-    <input
+    <UiInput
       type={type}
       value={value}
       placeholder={placeholder}
-      onChange={(e) => onChange(e.target.value)}
-      className={`${baseInput} ${borde(error)}`}
+      aria-invalid={!!error || undefined}
+      onValueChange={onChange}
+      className="h-auto rounded-[var(--radius-panel)] bg-surface px-3.5 py-2.5"
     />
   );
 }
@@ -73,11 +82,12 @@ export function TextArea({
   error?: string;
 }) {
   return (
-    <textarea
+    <UiTextarea
       value={value}
       rows={rows}
+      aria-invalid={!!error || undefined}
       onChange={(e) => onChange(e.target.value)}
-      className={`${baseInput} resize-y ${borde(error)}`}
+      className="rounded-[var(--radius-panel)] bg-surface px-3.5 py-2.5"
     />
   );
 }
@@ -93,18 +103,29 @@ export function Select({
   opciones: { valor: string; etiqueta: string }[];
   error?: string;
 }) {
+  const interno = value === "" ? VACIO : value;
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={`${baseInput} ${borde(error)}`}
+    <UiSelect
+      value={interno}
+      onValueChange={(v) => onChange(!v || v === VACIO ? "" : String(v))}
     >
-      {opciones.map((o) => (
-        <option key={o.valor} value={o.valor}>
-          {o.etiqueta}
-        </option>
-      ))}
-    </select>
+      <SelectTrigger
+        aria-invalid={!!error || undefined}
+        className="h-auto w-full rounded-[var(--radius-panel)] bg-surface px-3.5 py-2.5"
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {opciones.map((o) => {
+          const itemValue = o.valor === "" ? VACIO : o.valor;
+          return (
+            <SelectItem key={itemValue} value={itemValue}>
+              {o.etiqueta}
+            </SelectItem>
+          );
+        })}
+      </SelectContent>
+    </UiSelect>
   );
 }
 
@@ -119,11 +140,10 @@ export function Checkbox({
 }) {
   return (
     <label className="flex cursor-pointer items-start gap-2.5 text-sm text-ink">
-      <input
-        type="checkbox"
+      <UiCheckbox
         checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 h-4 w-4 shrink-0 accent-[#212121]"
+        onCheckedChange={(v) => onChange(v === true)}
+        className="mt-0.5"
       />
       <span>{children}</span>
     </label>
@@ -150,12 +170,13 @@ export function ArchivoPdf({
       <button
         type="button"
         onClick={() => ref.current?.click()}
-        className={`flex w-full items-center gap-3 rounded-[var(--radius-panel)] border border-dashed bg-surface-muted px-4 py-3 text-left text-sm transition-colors hover:bg-surface ${borde(
-          aviso,
-        )}`}
+        className={cn(
+          "flex w-full items-center gap-3 rounded-[var(--radius-panel)] border border-dashed bg-surface-muted px-4 py-3 text-left text-sm transition-colors hover:bg-surface",
+          aviso ? "border-[#616161]" : "border-border",
+        )}
       >
         <span className="grid h-9 w-9 place-items-center rounded-full bg-surface text-ink-soft">
-          <LuUpload size={18} />
+          <Upload size={18} />
         </span>
         <span className="min-w-0">
           <span className="block truncate font-medium text-ink">

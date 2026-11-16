@@ -21,8 +21,7 @@ import {
   EmptyState,
   Mensaje,
 } from "../../_components/ui";
-import { AreaChart } from "../../_components/charts";
-import { LuCalendar, LuPlus } from "react-icons/lu";
+import { Calendar, Plus } from "lucide-react";
 
 const PASOS = ["Borrador", "Enviada", "Aprobada", "Formalizada"];
 
@@ -41,10 +40,10 @@ export default function EstudianteInicio() {
     <>
       <PageHeader saludo="Bienvenida," nombre={nombre}>
         <span className="hidden items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm text-ink-soft md:inline-flex">
-          <LuCalendar size={16} /> 2.º Semestre 2026
+          <Calendar size={16} /> 2.º Semestre 2026
         </span>
         <Button href="/estudiante/solicitud">
-          <LuPlus size={18} /> Nueva solicitud
+          <Plus size={18} /> Nueva solicitud
         </Button>
       </PageHeader>
 
@@ -103,9 +102,6 @@ export default function EstudianteInicio() {
                     </div>
                   );
                 })}
-              </div>
-              <div className="mt-4">
-                <AreaChart valores={[2, 3, 2.5, 4, 3.5, 5, 4.5, 6]} alto={110} />
               </div>
             </Card>
           </div>

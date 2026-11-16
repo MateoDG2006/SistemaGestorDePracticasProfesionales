@@ -1,14 +1,28 @@
 "use client";
 
-// Componentes base del sistema de diseño monocromo.
+// Wrappers de dominio sobre primitivas shadcn (API estable para las páginas).
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ArrowUpRight, Check, CircleAlert } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Avatar as UiAvatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button as UiButton, buttonVariants } from "@/components/ui/button";
+import { Card as UiCard } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   EstadoInvitacion,
   EstadoPractica,
   EstadoSolicitud,
 } from "../_lib/types";
-import { LuArrowUpRight, LuCheck, LuCircleAlert } from "react-icons/lu";
 
 /* ---------------- Tarjetas y estructura ---------------- */
 
@@ -20,11 +34,14 @@ export function Card({
   className?: string;
 }) {
   return (
-    <div
-      className={`rounded-[var(--radius-card)] bg-surface shadow-card ${className}`}
+    <UiCard
+      className={cn(
+        "gap-0 rounded-[var(--radius-card)] py-0 shadow-card ring-foreground/5",
+        className,
+      )}
     >
       {children}
-    </div>
+    </UiCard>
   );
 }
 
@@ -70,12 +87,12 @@ export function PageHeader({
 /* ---------------- Botones ---------------- */
 
 type Variante = "primario" | "secundario" | "fantasma" | "peligro";
-const estilosBtn: Record<Variante, string> = {
-  primario: "bg-ink text-on-ink hover:bg-black",
-  secundario: "bg-surface text-ink border border-border hover:bg-surface-muted",
-  fantasma: "text-ink-soft hover:bg-surface-muted",
-  peligro: "bg-[#616161] text-white hover:bg-[#4a4a4a]",
-};
+const mapaVariante = {
+  primario: "default",
+  secundario: "outline",
+  fantasma: "ghost",
+  peligro: "destructive",
+} as const;
 
 export function Button({
   children,
@@ -96,20 +113,36 @@ export function Button({
   onClick?: () => void;
   className?: string;
 }) {
-  const base = `inline-flex items-center justify-center gap-2 rounded-[var(--radius-pill)] font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none ${
-    tamano === "sm" ? "px-3.5 py-1.5 text-sm" : "px-5 py-2.5 text-sm"
-  } ${estilosBtn[variante]} ${className}`;
+  const size = tamano === "sm" ? "sm" : "default";
+  const variant = mapaVariante[variante];
+  const clases = cn(
+    "rounded-full",
+    tamano === "md" && "h-auto px-5 py-2.5",
+    className,
+  );
+
   if (href) {
     return (
-      <Link href={href} className={base}>
+      <Link
+        href={href}
+        className={cn(buttonVariants({ variant, size }), clases)}
+      >
         {children}
       </Link>
     );
   }
+
   return (
-    <button type={tipo} disabled={disabled} onClick={onClick} className={base}>
+    <UiButton
+      type={tipo}
+      variant={variant}
+      size={size}
+      disabled={disabled}
+      onClick={onClick}
+      className={clases}
+    >
       {children}
-    </button>
+    </UiButton>
   );
 }
 
@@ -123,15 +156,17 @@ export function IconButton({
   onClick?: () => void;
 }) {
   return (
-    <button
+    <UiButton
       type="button"
+      variant="outline"
+      size="icon"
       aria-label={label}
       title={label}
       onClick={onClick}
-      className="grid h-10 w-10 place-items-center rounded-full border border-border bg-surface text-ink-soft transition-colors hover:bg-surface-muted"
+      className="rounded-full text-ink-soft"
     >
       {children}
-    </button>
+    </UiButton>
   );
 }
 
@@ -139,20 +174,21 @@ export function IconButton({
 
 type Tono = "solido" | "suave" | "borde" | "negativo" | "punteado";
 const estilosTono: Record<Tono, string> = {
-  solido: "bg-ink text-on-ink",
-  suave: "bg-surface-muted text-ink border border-border",
-  borde: "bg-[#e0e0e0] text-ink",
-  negativo: "bg-[#616161] text-white",
-  punteado: "border border-dashed border-ink-soft text-ink-soft",
+  solido: "border-transparent bg-ink text-on-ink",
+  suave: "border-border bg-surface-muted text-ink",
+  borde: "border-transparent bg-[#e0e0e0] text-ink",
+  negativo: "border-transparent bg-[#616161] text-white",
+  punteado: "border-dashed border-ink-soft bg-transparent text-ink-soft",
 };
 
 function chip(tono: Tono, texto: string) {
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${estilosTono[tono]}`}
+    <Badge
+      variant="outline"
+      className={cn("rounded-full px-2.5 py-1", estilosTono[tono])}
     >
       {texto}
-    </span>
+    </Badge>
   );
 }
 
@@ -219,7 +255,6 @@ export function StatCard({
   );
 }
 
-/** Tarjeta destacada en tinta oscura (equivalente a la tarjeta VISA del dashboard). */
 export function HighlightCard({
   titulo,
   children,
@@ -233,7 +268,7 @@ export function HighlightCard({
     <div className="rounded-[var(--radius-card)] bg-ink p-5 text-on-ink shadow-card">
       <div className="flex items-center justify-between">
         <p className="text-sm text-white/70">{titulo}</p>
-        <LuArrowUpRight size={20} className="text-white/60" />
+        <ArrowUpRight size={20} className="text-white/60" />
       </div>
       <div className="mt-6">{children}</div>
       {pie && <div className="mt-6 text-sm text-white/70">{pie}</div>}
@@ -252,12 +287,14 @@ export function Avatar({ nombre, size = 36 }: { nombre: string; size?: number })
     .join("")
     .toUpperCase();
   return (
-    <span
-      className="inline-grid shrink-0 place-items-center rounded-full bg-ink text-xs font-semibold text-on-ink"
+    <UiAvatar
+      className="bg-ink text-on-ink after:border-transparent"
       style={{ width: size, height: size }}
     >
-      {iniciales}
-    </span>
+      <AvatarFallback className="bg-ink text-xs font-semibold text-on-ink">
+        {iniciales}
+      </AvatarFallback>
+    </UiAvatar>
   );
 }
 
@@ -270,20 +307,27 @@ export function Mensaje({
   tipo: "ok" | "error" | "info";
   children: ReactNode;
 }) {
-  const estilo =
-    tipo === "ok"
-      ? "bg-ink text-on-ink"
-      : tipo === "error"
-        ? "border border-[#616161] bg-surface-muted text-ink"
-        : "border border-border bg-surface-muted text-ink";
-  const Icono = tipo === "ok" ? LuCheck : LuCircleAlert;
+  const Icono = tipo === "ok" ? Check : CircleAlert;
   return (
-    <div
-      className={`flex items-start gap-2.5 rounded-[var(--radius-panel)] px-4 py-3 text-sm ${estilo}`}
+    <Alert
+      variant={tipo === "error" ? "destructive" : "default"}
+      className={cn(
+        "rounded-[var(--radius-panel)] px-4 py-3",
+        tipo === "ok" && "border-transparent bg-ink text-on-ink",
+        tipo === "info" && "border-border bg-surface-muted text-ink",
+        tipo === "error" && "border-[#616161] bg-surface-muted text-ink",
+      )}
     >
-      <Icono className="mt-0.5 shrink-0" size={18} />
-      <div>{children}</div>
-    </div>
+      <Icono className="size-[18px]" />
+      <AlertDescription
+        className={cn(
+          "text-sm text-balance",
+          tipo === "ok" ? "text-on-ink" : "text-ink",
+        )}
+      >
+        {children}
+      </AlertDescription>
+    </Alert>
   );
 }
 
@@ -297,30 +341,32 @@ export function Tabla({
   children: ReactNode;
 }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-soft">
-            {columnas.map((c) => (
-              <th key={c} className="px-3 py-2.5 font-medium">
-                {c}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>{children}</tbody>
-      </table>
-    </div>
+    <Table>
+      <TableHeader>
+        <TableRow className="border-border hover:bg-transparent">
+          {columnas.map((c) => (
+            <TableHead
+              key={c}
+              className="px-3 py-2.5 text-xs uppercase tracking-wide text-ink-soft"
+            >
+              {c}
+            </TableHead>
+          ))}
+        </TableRow>
+      </TableHeader>
+      <TableBody>{children}</TableBody>
+    </Table>
   );
 }
 
 export function Fila({ children }: { children: ReactNode }) {
   return (
-    <tr className="border-b border-border/70 last:border-0 hover:bg-surface-muted/60">
+    <TableRow className="border-border/70 last:border-0 hover:bg-surface-muted/60">
       {children}
-    </tr>
+    </TableRow>
   );
 }
+
 export function Celda({
   children,
   className = "",
@@ -328,7 +374,11 @@ export function Celda({
   children: ReactNode;
   className?: string;
 }) {
-  return <td className={`px-3 py-3 align-middle ${className}`}>{children}</td>;
+  return (
+    <TableCell className={cn("px-3 py-3 whitespace-normal", className)}>
+      {children}
+    </TableCell>
+  );
 }
 
 export function EmptyState({ children }: { children: ReactNode }) {
@@ -342,7 +392,10 @@ export function EmptyState({ children }: { children: ReactNode }) {
 export function Spinner({ className = "" }: { className?: string }) {
   return (
     <span
-      className={`inline-block h-5 w-5 animate-spin rounded-full border-2 border-border border-t-ink ${className}`}
+      className={cn(
+        "inline-block h-5 w-5 animate-spin rounded-full border-2 border-border border-t-ink",
+        className,
+      )}
       role="status"
       aria-label="Cargando"
     />

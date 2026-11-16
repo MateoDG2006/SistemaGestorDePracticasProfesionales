@@ -17,8 +17,7 @@ import {
   StatCard,
   Tabla,
 } from "../../_components/ui";
-import { BarChart } from "../../_components/charts";
-import { LuCalendar } from "react-icons/lu";
+import { Calendar } from "lucide-react";
 import { MESES_DURACION_MINIMA } from "@/src/shared/dominio/reglas";
 
 export default function VicedecanatoInicio() {
@@ -34,32 +33,14 @@ export default function VicedecanatoInicio() {
     <>
       <PageHeader saludo="Bienvenido," nombre="Vicedecanato">
         <span className="hidden items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm text-ink-soft md:inline-flex">
-          <LuCalendar size={16} /> 2.º Semestre 2026
+          <Calendar size={16} /> 2.º Semestre 2026
         </span>
       </PageHeader>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <HighlightCard titulo="Solicitudes por evaluar" pie="Ordenadas de la más antigua a la más reciente">
-          <p className="text-4xl font-semibold">{bandeja?.length ?? "—"}</p>
-          <p className="mt-1 text-sm text-white/60">en la bandeja</p>
-        </HighlightCard>
-
-        <Card className="p-5 lg:col-span-2">
-          <SectionTitle titulo="Solicitudes recibidas" subtitulo="Últimos meses" />
-          <div className="mt-4">
-            <BarChart
-              datos={[
-                { etiqueta: "JUL", valor: 3 },
-                { etiqueta: "AGO", valor: 5 },
-                { etiqueta: "SEP", valor: 4 },
-                { etiqueta: "OCT", valor: 7 },
-                { etiqueta: "NOV", valor: Math.max(1, bandeja?.length ?? 2) },
-              ]}
-              resaltar={3}
-            />
-          </div>
-        </Card>
-      </div>
+      <HighlightCard titulo="Solicitudes por evaluar" pie="Ordenadas de la más antigua a la más reciente">
+        <p className="text-4xl font-semibold">{bandeja?.length ?? "—"}</p>
+        <p className="mt-1 text-sm text-white/60">en la bandeja</p>
+      </HighlightCard>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard etiqueta="Pendientes" valor={bandeja?.length ?? "—"} pie="por evaluar" />

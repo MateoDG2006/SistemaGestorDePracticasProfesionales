@@ -6,45 +6,45 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
+import {
+  Bell,
+  Briefcase,
+  FileText,
+  Inbox,
+  LayoutGrid,
+  LogOut,
+  Mail,
+  Search,
+  Shield,
+  SquareCheck,
+} from "lucide-react";
 import { useSesion } from "../_lib/session-context";
 import { listarNotificaciones } from "../_lib/api";
-import {
-  LuBell,
-  LuBriefcase,
-  LuFileText,
-  LuInbox,
-  LuLayoutGrid,
-  LuLogOut,
-  LuMail,
-  LuSearch,
-  LuShield,
-  LuSquareCheck,
-} from "react-icons/lu";
-import type { IconType } from "react-icons";
 import { RUTA_INICIO } from "@/src/shared/dominio/reglas";
 import { Avatar, Spinner } from "./ui";
 
 interface Item {
   href: string;
   etiqueta: string;
-  icono: IconType;
+  icono: LucideIcon;
 }
 
 const NAV: Record<string, Item[]> = {
   ESTUDIANTE: [
-    { href: RUTA_INICIO.ESTUDIANTE, etiqueta: "Inicio", icono: LuLayoutGrid },
-    { href: "/estudiante/solicitud", etiqueta: "Solicitud", icono: LuFileText },
-    { href: "/estudiante/solicitudes", etiqueta: "Mis solicitudes", icono: LuSquareCheck },
+    { href: RUTA_INICIO.ESTUDIANTE, etiqueta: "Inicio", icono: LayoutGrid },
+    { href: "/estudiante/solicitud", etiqueta: "Solicitud", icono: FileText },
+    { href: "/estudiante/solicitudes", etiqueta: "Mis solicitudes", icono: SquareCheck },
   ],
   VICEDECANATO: [
-    { href: RUTA_INICIO.VICEDECANATO, etiqueta: "Bandeja", icono: LuInbox },
-    { href: "/vicedecanato/formalizar", etiqueta: "Formalizar", icono: LuSquareCheck },
-    { href: "/vicedecanato/practicas", etiqueta: "Prácticas", icono: LuBriefcase },
+    { href: RUTA_INICIO.VICEDECANATO, etiqueta: "Bandeja", icono: Inbox },
+    { href: "/vicedecanato/formalizar", etiqueta: "Formalizar", icono: SquareCheck },
+    { href: "/vicedecanato/practicas", etiqueta: "Prácticas", icono: Briefcase },
   ],
   SUPERVISOR: [
-    { href: RUTA_INICIO.SUPERVISOR, etiqueta: "Invitaciones", icono: LuMail },
+    { href: RUTA_INICIO.SUPERVISOR, etiqueta: "Invitaciones", icono: Mail },
   ],
-  ASESOR: [{ href: RUTA_INICIO.ASESOR, etiqueta: "Bandeja", icono: LuInbox }],
+  ASESOR: [{ href: RUTA_INICIO.ASESOR, etiqueta: "Bandeja", icono: Inbox }],
 };
 
 function activo(pathname: string, href: string) {
@@ -67,14 +67,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (cargando || !usuario) {
     return (
-      <>
-        <div className="grid min-h-screen place-items-center">
-          <Spinner />
-        </div>
-        <div hidden aria-hidden>
-          {children}
-        </div>
-      </>
+      <div className="grid min-h-screen place-items-center">
+        <Spinner />
+      </div>
     );
   }
 
@@ -97,6 +92,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           {items.map((it) => {
             const on = activo(pathname, it.href);
+            const Icono = it.icono;
             return (
               <Link
                 key={it.href}
@@ -107,7 +103,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   on ? "bg-ink text-on-ink" : "text-ink-soft hover:bg-surface-muted"
                 }`}
               >
-                <it.icono size={20} />
+                <Icono size={20} />
               </Link>
             );
           })}
@@ -121,7 +117,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               activo(pathname, "/auditoria") ? "bg-ink text-on-ink" : "text-ink-soft hover:bg-surface-muted"
             }`}
           >
-            <LuShield size={20} />
+            <Shield size={20} />
           </Link>
           <button
             onClick={salir}
@@ -129,7 +125,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             title="Cerrar sesión"
             className="grid h-11 w-11 place-items-center rounded-2xl text-ink-soft transition-colors hover:bg-surface-muted"
           >
-            <LuLogOut size={20} />
+            <LogOut size={20} />
           </button>
         </div>
       </aside>
@@ -162,14 +158,14 @@ export function AppShell({ children }: { children: ReactNode }) {
               aria-label="Buscar"
               className="hidden h-10 w-10 place-items-center rounded-full border border-border text-ink-soft hover:bg-surface-muted md:grid"
             >
-              <LuSearch size={20} />
+              <Search size={20} />
             </button>
             <Link
               href="/auditoria"
               aria-label="Notificaciones"
               className="relative grid h-10 w-10 place-items-center rounded-full border border-border text-ink-soft hover:bg-surface-muted"
             >
-              <LuBell size={20} />
+              <Bell size={20} />
               {noLeidas > 0 && (
                 <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-ink px-1 text-[10px] font-semibold text-on-ink">
                   {noLeidas}
