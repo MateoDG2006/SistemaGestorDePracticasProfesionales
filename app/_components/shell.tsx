@@ -67,9 +67,14 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (cargando || !usuario) {
     return (
-      <div className="grid min-h-screen place-items-center">
-        <Spinner />
-      </div>
+      <>
+        <div className="grid min-h-screen place-items-center">
+          <Spinner />
+        </div>
+        <div hidden aria-hidden>
+          {children}
+        </div>
+      </>
     );
   }
 
