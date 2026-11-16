@@ -112,7 +112,7 @@ async function mock() {
 
 export async function iniciarSesion(correo: string, password: string): Promise<Usuario> {
   if (API_MODE === "mock") return (await mock()).iniciarSesion(correo, password);
-  return pedir<Usuario>("/sesiones", { method: "POST", body: { correo, password } });
+  return pedir<Usuario>("/sesiones", { method: "POST", body: { correo, contrasena: password } });
 }
 
 export async function cerrarSesion(): Promise<void> {
@@ -120,12 +120,12 @@ export async function cerrarSesion(): Promise<void> {
   await pedir<void>("/sesiones", { method: "DELETE" });
 }
 
-// Nota: endpoint propuesto (no está en la Tabla 20). Devuelve el usuario de la
-// sesión vigente o null. El backend debe exponer GET /api/sesiones/actual.
+// GET /api/sesiones → { usuario } (usuario puede ser null).
 export async function sesionActual(): Promise<Usuario | null> {
   if (API_MODE === "mock") return (await mock()).sesionActual();
   try {
-    return await pedir<Usuario>("/sesiones/actual");
+    const r = await pedir<{ usuario: Usuario | null }>("/sesiones");
+    return r.usuario;
   } catch (e) {
     if (e instanceof ApiError && (e.status === 401 || e.status === 404)) return null;
     throw e;

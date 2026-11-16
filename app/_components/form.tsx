@@ -3,7 +3,7 @@
 // Primitivas de formulario con soporte de error por campo (formato común §6.1).
 import type { ReactNode } from "react";
 import { useRef, useState } from "react";
-import { IconUpload } from "./icons";
+import { LuUpload } from "react-icons/lu";
 import { tamano } from "../_lib/format";
 
 export function Campo({
@@ -153,7 +153,7 @@ export function ArchivoPdf({
         )}`}
       >
         <span className="grid h-9 w-9 place-items-center rounded-full bg-surface text-ink-soft">
-          <IconUpload width={18} height={18} />
+          <LuUpload size={18} />
         </span>
         <span className="min-w-0">
           <span className="block truncate font-medium text-ink">

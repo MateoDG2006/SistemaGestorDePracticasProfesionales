@@ -8,7 +8,7 @@ export interface DatosEvaluacion {
   indiceMinimo: boolean;
   documentacionCompleta: boolean;
   jefeDepartamento: string | null;
-  fechaAprobacionJefe: Date | null;
+  fechaAprobacionJefe: Temporal.PlainDate | null;
   documentoComisionId: string | null;
   observaciones: string | null;
 }

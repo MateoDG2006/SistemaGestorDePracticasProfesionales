@@ -9,40 +9,41 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useSesion } from "../_lib/session-context";
 import { listarNotificaciones } from "../_lib/api";
 import {
-  IconBell,
-  IconBriefcase,
-  IconCheckSquare,
-  IconFile,
-  IconGrid,
-  IconInbox,
-  IconLogout,
-  IconMail,
-  IconSearch,
-  IconShield,
-} from "./icons";
+  LuBell,
+  LuBriefcase,
+  LuFileText,
+  LuInbox,
+  LuLayoutGrid,
+  LuLogOut,
+  LuMail,
+  LuSearch,
+  LuShield,
+  LuSquareCheck,
+} from "react-icons/lu";
+import type { IconType } from "react-icons";
 import { Avatar, Spinner } from "./ui";
 
 interface Item {
   href: string;
   etiqueta: string;
-  icono: (p: { width?: number; height?: number }) => ReactNode;
+  icono: IconType;
 }
 
 const NAV: Record<string, Item[]> = {
   ESTUDIANTE: [
-    { href: "/estudiante", etiqueta: "Inicio", icono: IconGrid },
-    { href: "/estudiante/solicitud", etiqueta: "Solicitud", icono: IconFile },
-    { href: "/estudiante/solicitudes", etiqueta: "Mis solicitudes", icono: IconCheckSquare },
+    { href: "/estudiante", etiqueta: "Inicio", icono: LuLayoutGrid },
+    { href: "/estudiante/solicitud", etiqueta: "Solicitud", icono: LuFileText },
+    { href: "/estudiante/solicitudes", etiqueta: "Mis solicitudes", icono: LuSquareCheck },
   ],
   VICEDECANATO: [
-    { href: "/vicedecanato", etiqueta: "Bandeja", icono: IconInbox },
-    { href: "/vicedecanato/formalizar", etiqueta: "Formalizar", icono: IconCheckSquare },
-    { href: "/vicedecanato/practicas", etiqueta: "Prácticas", icono: IconBriefcase },
+    { href: "/vicedecanato", etiqueta: "Bandeja", icono: LuInbox },
+    { href: "/vicedecanato/formalizar", etiqueta: "Formalizar", icono: LuSquareCheck },
+    { href: "/vicedecanato/practicas", etiqueta: "Prácticas", icono: LuBriefcase },
   ],
   SUPERVISOR: [
-    { href: "/supervisor", etiqueta: "Invitaciones", icono: IconMail },
+    { href: "/supervisor", etiqueta: "Invitaciones", icono: LuMail },
   ],
-  ASESOR: [{ href: "/vicedecanato", etiqueta: "Bandeja", icono: IconInbox }],
+  ASESOR: [{ href: "/vicedecanato", etiqueta: "Bandeja", icono: LuInbox }],
 };
 
 function activo(pathname: string, href: string) {
@@ -100,7 +101,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   on ? "bg-ink text-on-ink" : "text-ink-soft hover:bg-surface-muted"
                 }`}
               >
-                <it.icono />
+                <it.icono size={20} />
               </Link>
             );
           })}
@@ -114,7 +115,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               activo(pathname, "/auditoria") ? "bg-ink text-on-ink" : "text-ink-soft hover:bg-surface-muted"
             }`}
           >
-            <IconShield />
+            <LuShield size={20} />
           </Link>
           <button
             onClick={salir}
@@ -122,7 +123,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             title="Cerrar sesión"
             className="grid h-11 w-11 place-items-center rounded-2xl text-ink-soft transition-colors hover:bg-surface-muted"
           >
-            <IconLogout />
+            <LuLogOut size={20} />
           </button>
         </div>
       </aside>
@@ -155,14 +156,14 @@ export function AppShell({ children }: { children: ReactNode }) {
               aria-label="Buscar"
               className="hidden h-10 w-10 place-items-center rounded-full border border-border text-ink-soft hover:bg-surface-muted md:grid"
             >
-              <IconSearch />
+              <LuSearch size={20} />
             </button>
             <Link
               href="/auditoria"
               aria-label="Notificaciones"
               className="relative grid h-10 w-10 place-items-center rounded-full border border-border text-ink-soft hover:bg-surface-muted"
             >
-              <IconBell />
+              <LuBell size={20} />
               {noLeidas > 0 && (
                 <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-ink px-1 text-[10px] font-semibold text-on-ink">
                   {noLeidas}

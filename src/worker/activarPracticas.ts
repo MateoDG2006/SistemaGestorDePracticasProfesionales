@@ -1,6 +1,6 @@
 import { prisma } from "@/src/shared/db/prisma";
+import { fechaAPrisma } from "@/src/shared/db/fecha";
 import { EstadoPractica } from "@/src/shared/dominio/enums";
-import { soloFecha } from "@/src/shared/fechas";
 import { registrarAuditoria } from "@/src/modules/auditoria/auditoriaApi";
 import { bus } from "@/src/shared/eventos/bus";
 import { TipoEvento, type PracticaIniciada } from "@/src/shared/eventos/tipos";
@@ -8,7 +8,7 @@ import { TipoEvento, type PracticaIniciada } from "@/src/shared/eventos/tipos";
 // ActivarPracticasJob (4.7, diario 00:05): pasa a EN_CURSO las practicas
 // "Por iniciar" cuya fecha de inicio llego (CU-03 A2). Autor SISTEMA (usuarioId null).
 export async function activarPracticas(): Promise<number> {
-  const hoy = soloFecha(new Date());
+  const hoy = fechaAPrisma(Temporal.Now.plainDateISO("UTC"));
   const porIniciar = await prisma.practica.findMany({
     where: { estado: EstadoPractica.POR_INICIAR, fechaInicio: { lte: hoy } },
   });

@@ -8,7 +8,7 @@ import {
   EstadoPractica,
   EstadoSolicitud,
 } from "../_lib/types";
-import { IconAlert, IconArrowUpRight, IconCheck, IconX } from "./icons";
+import { LuArrowUpRight, LuCheck, LuCircleAlert } from "react-icons/lu";
 
 /* ---------------- Tarjetas y estructura ---------------- */
 
@@ -229,7 +229,7 @@ export function HighlightCard({
     <div className="rounded-[var(--radius-card)] bg-ink p-5 text-on-ink shadow-card">
       <div className="flex items-center justify-between">
         <p className="text-sm text-white/70">{titulo}</p>
-        <IconArrowUpRight className="text-white/60" />
+        <LuArrowUpRight size={20} className="text-white/60" />
       </div>
       <div className="mt-6">{children}</div>
       {pie && <div className="mt-6 text-sm text-white/70">{pie}</div>}
@@ -272,12 +272,12 @@ export function Mensaje({
       : tipo === "error"
         ? "border border-[#616161] bg-surface-muted text-ink"
         : "border border-border bg-surface-muted text-ink";
-  const Icono = tipo === "ok" ? IconCheck : tipo === "error" ? IconAlert : IconAlert;
+  const Icono = tipo === "ok" ? LuCheck : LuCircleAlert;
   return (
     <div
       className={`flex items-start gap-2.5 rounded-[var(--radius-panel)] px-4 py-3 text-sm ${estilo}`}
     >
-      <Icono className="mt-0.5 shrink-0" width={18} height={18} />
+      <Icono className="mt-0.5 shrink-0" size={18} />
       <div>{children}</div>
     </div>
   );
@@ -344,5 +344,3 @@ export function Spinner({ className = "" }: { className?: string }) {
     />
   );
 }
-
-export { IconX };

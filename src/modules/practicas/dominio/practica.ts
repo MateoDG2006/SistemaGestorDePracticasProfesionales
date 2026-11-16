@@ -1,14 +1,12 @@
 import { EstadoPractica } from "@/src/shared/dominio/enums";
-import { cumpleDuracionMinima } from "@/src/shared/fechas";
-import { soloFecha } from "@/src/shared/fechas";
 import { ErrorValidacion } from "@/src/shared/errores/errores";
 
 // Reglas de dominio de la formalizacion (CU-03).
 export function validarFormalizacion(params: {
   asesorCorreo: string;
   supervisorCorreo: string;
-  fechaInicio: Date;
-  fechaFin: Date;
+  fechaInicio: Temporal.PlainDate;
+  fechaFin: Temporal.PlainDate;
   tieneConvenio: boolean;
 }): void {
   // RN-04: el asesor no puede ser el supervisor (CU-03 E1).
@@ -18,7 +16,7 @@ export function validarFormalizacion(params: {
     ]);
   }
   // RN-03: duracion minima de 6 meses (CU-03 E3).
-  if (!cumpleDuracionMinima(params.fechaInicio, params.fechaFin)) {
+  if (Temporal.PlainDate.compare(params.fechaFin, params.fechaInicio.add({ months: 6 })) < 0) {
     throw new ErrorValidacion("La duracion minima es de 6 meses (Art. 39).", [
       { campo: "fechaFin", error: "La duracion minima es de 6 meses." },
     ]);
@@ -32,8 +30,8 @@ export function validarFormalizacion(params: {
 }
 
 // CU-03 A2: si la fecha de inicio es futura, la practica queda "Por iniciar".
-export function estadoInicial(fechaInicio: Date, hoy: Date): EstadoPractica {
-  return soloFecha(fechaInicio).getTime() > soloFecha(hoy).getTime()
+export function estadoInicial(fechaInicio: Temporal.PlainDate, hoy: Temporal.PlainDate): EstadoPractica {
+  return Temporal.PlainDate.compare(fechaInicio, hoy) > 0
     ? EstadoPractica.POR_INICIAR
     : EstadoPractica.EN_CURSO;
 }

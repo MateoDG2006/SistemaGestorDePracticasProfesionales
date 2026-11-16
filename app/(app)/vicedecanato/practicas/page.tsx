@@ -18,7 +18,7 @@ import {
   Spinner,
   Tabla,
 } from "../../../_components/ui";
-import { IconRefresh } from "../../../_components/icons";
+import { LuRefreshCw } from "react-icons/lu";
 
 export default function Pagina() {
   return (
@@ -94,7 +94,7 @@ function Contenido() {
                     disabled={reenviando === p.id}
                     onClick={() => reenviar(p.id)}
                   >
-                    {reenviando === p.id ? <Spinner className="h-4 w-4" /> : <><IconRefresh width={16} height={16} /> Reenviar invitación</>}
+                    {reenviando === p.id ? <Spinner className="h-4 w-4" /> : <><LuRefreshCw size={16} /> Reenviar invitación</>}
                   </Button>
                 )}
               </div>

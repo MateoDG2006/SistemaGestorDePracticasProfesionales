@@ -1,4 +1,5 @@
 import { prisma } from "@/src/shared/db/prisma";
+import { fechaAPrisma } from "@/src/shared/db/fecha";
 import { Decision, EstadoSolicitud } from "@/src/shared/dominio/enums";
 import { puedeEvaluar } from "../dominio/estados";
 import { validarEvaluacion, type DatosEvaluacion } from "../dominio/evaluacion";
@@ -67,7 +68,9 @@ export async function evaluarSolicitud(
         indiceMinimo: datos.indiceMinimo,
         documentacionCompleta: datos.documentacionCompleta,
         jefeDepartamento: datos.jefeDepartamento,
-        fechaAprobacionJefe: datos.fechaAprobacionJefe,
+        fechaAprobacionJefe: datos.fechaAprobacionJefe
+          ? fechaAPrisma(datos.fechaAprobacionJefe)
+          : null,
         documentoComisionId: datos.documentoComisionId,
         observaciones: datos.observaciones,
         evaluadoPor: vicedecanoId,

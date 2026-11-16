@@ -1,4 +1,5 @@
 import { prisma, type Tx } from "@/src/shared/db/prisma";
+import { fechaDePrismaOpcional } from "@/src/shared/db/fecha";
 import { Rol, EstadoSolicitud, TipoDocumento } from "@/src/shared/dominio/enums";
 import { puedeEnviar } from "../dominio/estados";
 import { validarEnviable } from "../dominio/solicitud";
@@ -50,8 +51,8 @@ export async function enviarSolicitud(solicitudId: string, estudianteId: string)
       supervisorTelefono: sol.supervisorTelefono,
       objetivo: sol.objetivo,
       actividades: sol.actividades,
-      fechaInicio: sol.fechaInicio,
-      fechaFin: sol.fechaFin,
+      fechaInicio: fechaDePrismaOpcional(sol.fechaInicio),
+      fechaFin: fechaDePrismaOpcional(sol.fechaFin),
       consentimientoDatos: sol.consentimientoDatos,
       tieneNotaAceptacion: notas > 0,
       asesorCorreo,

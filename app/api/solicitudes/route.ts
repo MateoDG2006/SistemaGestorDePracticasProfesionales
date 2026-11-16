@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ejecutar, leerJson, fechaISO } from "@/src/shared/http/responder";
+import { ejecutar, leerJson, leerFecha } from "@/src/shared/http/responder";
 import { ok } from "@/src/shared/errores/respuesta";
 import { arrancar } from "@/src/arranque";
 import { requerirUsuario } from "@/src/shared/auth/sesion";
@@ -39,8 +39,8 @@ export function aSolicitudInput(b: z.infer<typeof SolicitudBody>): SolicitudInpu
     supervisorTelefono: b.supervisorTelefono ?? null,
     objetivo: b.objetivo ?? null,
     actividades: b.actividades ?? null,
-    fechaInicio: b.fechaInicio ? fechaISO(b.fechaInicio) : null,
-    fechaFin: b.fechaFin ? fechaISO(b.fechaFin) : null,
+    fechaInicio: b.fechaInicio ? leerFecha(b.fechaInicio) : null,
+    fechaFin: b.fechaFin ? leerFecha(b.fechaFin) : null,
     asesorSugeridoId: b.asesorSugeridoId ?? null,
     consentimientoDatos: b.consentimientoDatos ?? false,
   };

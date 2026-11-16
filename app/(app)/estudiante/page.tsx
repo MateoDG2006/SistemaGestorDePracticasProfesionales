@@ -21,7 +21,7 @@ import {
   Mensaje,
 } from "../../_components/ui";
 import { AreaChart } from "../../_components/charts";
-import { IconCalendar, IconPlus } from "../../_components/icons";
+import { LuCalendar, LuPlus } from "react-icons/lu";
 
 const EN_TRAMITE = ["BORRADOR", "ENVIADA", "DEVUELTA", "APROBADA"];
 const PASOS = ["Borrador", "Enviada", "Aprobada", "Formalizada"];
@@ -55,10 +55,10 @@ export default function EstudianteInicio() {
     <>
       <PageHeader saludo="Bienvenida," nombre={nombre}>
         <span className="hidden items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm text-ink-soft md:inline-flex">
-          <IconCalendar width={16} height={16} /> 2.º Semestre 2026
+          <LuCalendar size={16} /> 2.º Semestre 2026
         </span>
         <Button href="/estudiante/solicitud">
-          <IconPlus width={18} height={18} /> Nueva solicitud
+          <LuPlus size={18} /> Nueva solicitud
         </Button>
       </PageHeader>
 

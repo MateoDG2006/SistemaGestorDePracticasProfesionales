@@ -1,8 +1,8 @@
 import { prisma } from "@/src/shared/db/prisma";
+import { fechaAPrisma } from "@/src/shared/db/fecha";
 import { TipoDocumento } from "@/src/shared/dominio/enums";
 import { validarPdf } from "@/src/shared/pdf/validadorPdf";
 import { guardarArchivo } from "@/src/shared/pdf/almacenArchivos";
-import { relojSistema } from "@/src/shared/reloj";
 import { registrarAuditoria } from "@/src/modules/auditoria/auditoriaApi";
 import { bus } from "@/src/shared/eventos/bus";
 import { TipoEvento, type PracticaFormalizada } from "@/src/shared/eventos/tipos";
@@ -25,8 +25,8 @@ export interface ConvenioEntrada {
 export interface DatosFormalizacion {
   solicitudId: string;
   asesorId?: string | null; // confirma el sugerido o asigna otro
-  fechaInicio?: Date | null;
-  fechaFin?: Date | null;
+  fechaInicio?: Temporal.PlainDate | null;
+  fechaFin?: Temporal.PlainDate | null;
   convenio: ConvenioEntrada;
 }
 
@@ -64,8 +64,8 @@ export async function formalizarPractica(vicedecanoId: string, datos: DatosForma
   // Valida y guarda el convenio (RNF-09) antes de abrir la transaccion.
   validarPdf(datos.convenio.buffer, datos.convenio.mime);
 
-  const ahora = relojSistema.ahora();
-  const estado = estadoInicial(fechaInicio, ahora);
+  const hoy = Temporal.Now.plainDateISO("UTC");
+  const estado = estadoInicial(fechaInicio, hoy);
   const periodos = generarPeriodos(fechaInicio, fechaFin);
 
   try {
@@ -76,9 +76,10 @@ export async function formalizarPractica(vicedecanoId: string, datos: DatosForma
           estudianteId: sol.estudianteId,
           asesorId,
           supervisorCorreo: sol.supervisorCorreo,
-          fechaInicio,
-          fechaFin,
+          fechaInicio: fechaAPrisma(fechaInicio),
+          fechaFin: fechaAPrisma(fechaFin),
           estado,
+          formalizadaPor: vicedecanoId,
         },
       });
 
@@ -97,7 +98,13 @@ export async function formalizarPractica(vicedecanoId: string, datos: DatosForma
 
       // Seis periodos mensuales con sus vencimientos (RN-03, RN-05).
       await tx.periodoMensual.createMany({
-        data: periodos.map((p) => ({ practicaId: practica.id, ...p })),
+        data: periodos.map((p) => ({
+          practicaId: practica.id,
+          numero: p.numero,
+          fechaInicio: fechaAPrisma(p.fechaInicio),
+          fechaCierre: fechaAPrisma(p.fechaCierre),
+          venceInforme: fechaAPrisma(p.venceInforme),
+        })),
       });
 
       // Supervisor: invitacion de un solo uso o vinculacion de cuenta existente (CU-03 A1).

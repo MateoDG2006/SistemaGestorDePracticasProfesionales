@@ -1,4 +1,3 @@
-import { cumpleDuracionMinima } from "@/src/shared/fechas";
 import { ErrorValidacion, type CampoError } from "@/src/shared/errores/errores";
 
 // Reglas de dominio para enviar una solicitud (CU-01 paso 9).
@@ -10,8 +9,8 @@ export interface DatosEnviable {
   supervisorTelefono: string | null;
   objetivo: string | null;
   actividades: string | null;
-  fechaInicio: Date | null;
-  fechaFin: Date | null;
+  fechaInicio: Temporal.PlainDate | null;
+  fechaFin: Temporal.PlainDate | null;
   consentimientoDatos: boolean;
   tieneNotaAceptacion: boolean;
   asesorCorreo: string | null; // correo del asesor sugerido, si lo hay
@@ -46,7 +45,11 @@ export function validarEnviable(d: DatosEnviable): void {
   }
 
   // RN-03: duracion minima de 6 meses (CU-01 E4).
-  if (d.fechaInicio && d.fechaFin && !cumpleDuracionMinima(d.fechaInicio, d.fechaFin)) {
+  if (
+    d.fechaInicio &&
+    d.fechaFin &&
+    Temporal.PlainDate.compare(d.fechaFin, d.fechaInicio.add({ months: 6 })) < 0
+  ) {
     campos.push({ campo: "fechaFin", error: "La duracion minima es de 6 meses (Art. 39)." });
   }
 

@@ -1,4 +1,5 @@
 import { prisma } from "@/src/shared/db/prisma";
+import { fechaDePrisma } from "@/src/shared/db/fecha";
 import { EstadoSolicitud } from "@/src/shared/dominio/enums";
 
 // SolicitudesApi (Fase 2, Tabla 22): datos para que Practicas formalice sin
@@ -9,21 +10,21 @@ export interface SolicitudAprobadaDto {
   asesorSugeridoId: string | null;
   supervisorNombre: string;
   supervisorCorreo: string;
-  fechaInicio: Date;
-  fechaFin: Date;
+  fechaInicio: Temporal.PlainDate;
+  fechaFin: Temporal.PlainDate;
 }
 
 export async function obtenerAprobada(id: string): Promise<SolicitudAprobadaDto | null> {
   const s = await prisma.solicitud.findFirst({ where: { id, estado: EstadoSolicitud.APROBADA } });
-  if (!s) return null;
+  if (!s || !s.fechaInicio || !s.fechaFin) return null;
   return {
     id: s.id,
     estudianteId: s.estudianteId,
     asesorSugeridoId: s.asesorSugeridoId,
     supervisorNombre: s.supervisorNombre ?? "",
     supervisorCorreo: s.supervisorCorreo ?? "",
-    fechaInicio: s.fechaInicio!,
-    fechaFin: s.fechaFin!,
+    fechaInicio: fechaDePrisma(s.fechaInicio),
+    fechaFin: fechaDePrisma(s.fechaFin),
   };
 }
 

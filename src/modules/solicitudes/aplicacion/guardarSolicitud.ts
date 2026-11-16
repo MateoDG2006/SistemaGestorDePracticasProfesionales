@@ -1,4 +1,5 @@
 import { prisma, type Tx } from "@/src/shared/db/prisma";
+import { fechaAPrisma } from "@/src/shared/db/fecha";
 import { EstadoSolicitud } from "@/src/shared/dominio/enums";
 import { puedeEditarBorrador } from "../dominio/estados";
 import { registrarAuditoria } from "@/src/modules/auditoria/auditoriaApi";
@@ -24,8 +25,8 @@ export interface SolicitudInput {
   supervisorTelefono?: string | null;
   objetivo?: string | null;
   actividades?: string | null;
-  fechaInicio?: Date | null;
-  fechaFin?: Date | null;
+  fechaInicio?: Temporal.PlainDate | null;
+  fechaFin?: Temporal.PlainDate | null;
   asesorSugeridoId?: string | null;
   consentimientoDatos?: boolean;
 }
@@ -60,8 +61,8 @@ function camposSolicitud(input: SolicitudInput, empresaId: string | null) {
     supervisorTelefono: input.supervisorTelefono ?? null,
     objetivo: input.objetivo ?? null,
     actividades: input.actividades ?? null,
-    fechaInicio: input.fechaInicio ?? null,
-    fechaFin: input.fechaFin ?? null,
+    fechaInicio: input.fechaInicio ? fechaAPrisma(input.fechaInicio) : null,
+    fechaFin: input.fechaFin ? fechaAPrisma(input.fechaFin) : null,
     asesorSugeridoId: input.asesorSugeridoId ?? null,
     consentimientoDatos: input.consentimientoDatos ?? false,
   };

@@ -1,9 +1,9 @@
 "use client";
 
 // Contexto de sesión del lado del cliente. Resuelve el usuario vigente con el
-// cliente API (modo real: GET /api/sesiones/actual; modo mock: almacenamiento
-// local). Mantiene todo el acceso a sesión fuera del render del servidor, lo que
-// evita las restricciones de cacheComponents con cookies().
+// cliente API (modo real: GET /api/sesiones; modo mock: almacenamiento local).
+// Mantiene todo el acceso a sesión fuera del render del servidor, lo que evita
+// las restricciones de cacheComponents con cookies().
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";

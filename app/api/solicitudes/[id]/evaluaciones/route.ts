@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ejecutar, leerJson, fechaISO } from "@/src/shared/http/responder";
+import { ejecutar, leerJson, leerFecha } from "@/src/shared/http/responder";
 import { ok } from "@/src/shared/errores/respuesta";
 import { arrancar } from "@/src/arranque";
 import { requerirUsuario } from "@/src/shared/auth/sesion";
@@ -31,7 +31,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       indiceMinimo: b.indiceMinimo ?? false,
       documentacionCompleta: b.documentacionCompleta ?? false,
       jefeDepartamento: b.jefeDepartamento ?? null,
-      fechaAprobacionJefe: b.fechaAprobacionJefe ? fechaISO(b.fechaAprobacionJefe) : null,
+      fechaAprobacionJefe: b.fechaAprobacionJefe ? leerFecha(b.fechaAprobacionJefe) : null,
       documentoComisionId: b.documentoComisionId ?? null,
       observaciones: b.observaciones ?? null,
     });

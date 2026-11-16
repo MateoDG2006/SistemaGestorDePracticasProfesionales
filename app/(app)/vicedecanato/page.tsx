@@ -18,7 +18,7 @@ import {
   Tabla,
 } from "../../_components/ui";
 import { BarChart } from "../../_components/charts";
-import { IconCalendar } from "../../_components/icons";
+import { LuCalendar } from "react-icons/lu";
 
 export default function VicedecanatoInicio() {
   const [bandeja, setBandeja] = useState<Solicitud[] | null>(null);
@@ -33,7 +33,7 @@ export default function VicedecanatoInicio() {
     <>
       <PageHeader saludo="Bienvenido," nombre="Vicedecanato">
         <span className="hidden items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm text-ink-soft md:inline-flex">
-          <IconCalendar width={16} height={16} /> 2.º Semestre 2026
+          <LuCalendar size={16} /> 2.º Semestre 2026
         </span>
       </PageHeader>
 

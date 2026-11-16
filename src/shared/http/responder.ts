@@ -30,12 +30,13 @@ export async function leerJson<T>(req: Request, schema: z.ZodType<T>): Promise<T
   return r.data;
 }
 
-// Fecha "YYYY-MM-DD" -> Date a medianoche UTC.
-export function fechaISO(valor: string): Date {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+// Fecha "YYYY-MM-DD" -> PlainDate (rechaza formatos parciales e invalidos).
+export function leerFecha(valor: string): Temporal.PlainDate {
+  try {
+    return Temporal.PlainDate.from(valor);
+  } catch {
     throw new ErrorPeticion("Formato de fecha invalido (use YYYY-MM-DD).");
   }
-  return new Date(`${valor}T00:00:00.000Z`);
 }
 
 // Guard temprano por Content-Length (RNF-09, 413) antes de leer el archivo.
