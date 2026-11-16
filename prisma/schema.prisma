@@ -1,0 +1,250 @@
+// Sistema de Gestion de Practicas Profesionales - FISC
+// Prisma espejo del esquema SQL de referencia (prisma/migrations/0001_init).
+// Se usa varchar + CHECK (no enums nativos); los valores validos se tipan en
+// src/shared/dominio/enums.ts. Las restricciones viven en la base de datos.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------- Modulo Identidad -------------------------
+
+model Usuario {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  correo       String   @unique @db.VarChar(150)
+  nombre       String   @db.VarChar(150)
+  rol          String   @db.VarChar(15)
+  passwordHash String?  @map("password_hash") @db.VarChar(255)
+  activo       Boolean  @default(true)
+  creadoEn     DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  perfilEstudiante     PerfilEstudiante?
+  solicitudes          Solicitud[]           @relation("SolicitudEstudiante")
+  solicitudesAsesorias Solicitud[]           @relation("SolicitudAsesorSugerido")
+  evaluaciones         EvaluacionSolicitud[] @relation("EvaluacionEvaluador")
+  practicasEstudiante  Practica[]            @relation("PracticaEstudiante")
+  practicasAsesor      Practica[]            @relation("PracticaAsesor")
+  practicasSupervisor  Practica[]            @relation("PracticaSupervisor")
+  practicasFormaliza   Practica[]            @relation("PracticaFormalizadaPor")
+  notificaciones       Notificacion[]
+
+  @@map("usuario")
+}
+
+model PerfilEstudiante {
+  usuarioId String @id @map("usuario_id") @db.Uuid
+  cedula    String @unique @db.VarChar(20)
+  carrera   String @db.VarChar(150)
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@map("perfil_estudiante")
+}
+
+model Invitacion {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  practicaId    String    @map("practica_id") @db.Uuid
+  correoDestino String    @map("correo_destino") @db.VarChar(150)
+  hashToken     String    @unique @map("hash_token") @db.Char(64)
+  venceEn       DateTime  @map("vence_en") @db.Timestamptz(6)
+  usadaEn       DateTime? @map("usada_en") @db.Timestamptz(6)
+  estado        String    @default("PENDIENTE") @db.VarChar(10)
+
+  practica Practica @relation(fields: [practicaId], references: [id])
+
+  @@index([estado, venceEn], map: "ix_invitacion_vencimiento")
+  @@map("invitacion")
+}
+
+// ------------------------- Modulo Solicitudes -------------------------
+
+model Empresa {
+  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre    String  @db.VarChar(200)
+  ruc       String? @db.VarChar(30)
+  direccion String? @db.VarChar(300)
+  telefono  String? @db.VarChar(30)
+  correo    String? @db.VarChar(150)
+
+  solicitudes Solicitud[]
+
+  @@unique([nombre, ruc])
+  @@map("empresa")
+}
+
+model Solicitud {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  numero              String?   @unique @db.VarChar(20)
+  estudianteId        String    @map("estudiante_id") @db.Uuid
+  empresaId           String?   @map("empresa_id") @db.Uuid
+  supervisorNombre    String?   @map("supervisor_nombre") @db.VarChar(150)
+  supervisorCargo     String?   @map("supervisor_cargo") @db.VarChar(100)
+  supervisorCorreo    String?   @map("supervisor_correo") @db.VarChar(150)
+  supervisorTelefono  String?   @map("supervisor_telefono") @db.VarChar(30)
+  objetivo            String?
+  actividades         String?
+  fechaInicio         DateTime? @map("fecha_inicio") @db.Date
+  fechaFin            DateTime? @map("fecha_fin") @db.Date
+  asesorSugeridoId    String?   @map("asesor_sugerido_id") @db.Uuid
+  consentimientoDatos Boolean   @default(false) @map("consentimiento_datos")
+  consentimientoEn    DateTime? @map("consentimiento_en") @db.Timestamptz(6)
+  estado              String    @default("BORRADOR") @db.VarChar(12)
+  version             Int       @default(0)
+  enviadaEn           DateTime? @map("enviada_en") @db.Timestamptz(6)
+  creadaEn            DateTime  @default(now()) @map("creada_en") @db.Timestamptz(6)
+
+  estudiante     Usuario              @relation("SolicitudEstudiante", fields: [estudianteId], references: [id])
+  empresa        Empresa?             @relation(fields: [empresaId], references: [id])
+  asesorSugerido Usuario?             @relation("SolicitudAsesorSugerido", fields: [asesorSugeridoId], references: [id])
+  documentos     DocumentoSolicitud[]
+  evaluaciones   EvaluacionSolicitud[]
+  practica       Practica?
+
+  @@index([estado, enviadaEn], map: "ix_solicitud_bandeja")
+  @@map("solicitud")
+}
+
+model DocumentoSolicitud {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  solicitudId    String   @map("solicitud_id") @db.Uuid
+  tipo           String   @db.VarChar(30)
+  nombreOriginal String   @map("nombre_original") @db.VarChar(255)
+  ruta           String   @db.VarChar(400)
+  hashSha256     String   @map("hash_sha256") @db.Char(64)
+  tamanoBytes    Int      @map("tamano_bytes")
+  subidoEn       DateTime @default(now()) @map("subido_en") @db.Timestamptz(6)
+
+  solicitud            Solicitud             @relation(fields: [solicitudId], references: [id])
+  evaluacionesComision EvaluacionSolicitud[] @relation("DocumentoComision")
+
+  @@map("documento_solicitud")
+}
+
+model EvaluacionSolicitud {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  solicitudId           String    @map("solicitud_id") @db.Uuid
+  decision              String    @db.VarChar(10)
+  asignaturasAprobadas  Boolean   @default(false) @map("asignaturas_aprobadas")
+  indiceMinimo          Boolean   @default(false) @map("indice_minimo")
+  documentacionCompleta Boolean   @default(false) @map("documentacion_completa")
+  jefeDepartamento      String?   @map("jefe_departamento") @db.VarChar(150)
+  fechaAprobacionJefe   DateTime? @map("fecha_aprobacion_jefe") @db.Date
+  documentoComisionId   String?   @map("documento_comision_id") @db.Uuid
+  observaciones         String?
+  evaluadoPor           String    @map("evaluado_por") @db.Uuid
+  evaluadoEn            DateTime  @default(now()) @map("evaluado_en") @db.Timestamptz(6)
+
+  solicitud         Solicitud           @relation(fields: [solicitudId], references: [id])
+  documentoComision DocumentoSolicitud? @relation("DocumentoComision", fields: [documentoComisionId], references: [id])
+  evaluador         Usuario             @relation("EvaluacionEvaluador", fields: [evaluadoPor], references: [id])
+
+  @@index([solicitudId, evaluadoEn], map: "ix_evaluacion_solicitud")
+  @@map("evaluacion_solicitud")
+}
+
+// ------------------------- Modulo Practicas -------------------------
+
+model Practica {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  solicitudId      String   @unique @map("solicitud_id") @db.Uuid
+  estudianteId     String   @map("estudiante_id") @db.Uuid
+  asesorId         String   @map("asesor_id") @db.Uuid
+  supervisorId     String?  @map("supervisor_id") @db.Uuid
+  supervisorCorreo String   @map("supervisor_correo") @db.VarChar(150)
+  fechaInicio      DateTime @map("fecha_inicio") @db.Date
+  fechaFin         DateTime @map("fecha_fin") @db.Date
+  estado           String   @db.VarChar(12)
+  formalizadaPor   String   @map("formalizada_por") @db.Uuid
+  formalizadaEn    DateTime @default(now()) @map("formalizada_en") @db.Timestamptz(6)
+
+  solicitud    Solicitud           @relation(fields: [solicitudId], references: [id])
+  estudiante   Usuario             @relation("PracticaEstudiante", fields: [estudianteId], references: [id])
+  asesor       Usuario             @relation("PracticaAsesor", fields: [asesorId], references: [id])
+  supervisor   Usuario?            @relation("PracticaSupervisor", fields: [supervisorId], references: [id])
+  formalizador Usuario             @relation("PracticaFormalizadaPor", fields: [formalizadaPor], references: [id])
+  periodos     PeriodoMensual[]
+  documentos   DocumentoPractica[]
+  invitaciones Invitacion[]
+
+  @@map("practica")
+}
+
+model PeriodoMensual {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  practicaId   String   @map("practica_id") @db.Uuid
+  numero       Int      @db.SmallInt
+  fechaInicio  DateTime @map("fecha_inicio") @db.Date
+  fechaCierre  DateTime @map("fecha_cierre") @db.Date
+  venceInforme DateTime @map("vence_informe") @db.Date
+
+  practica Practica @relation(fields: [practicaId], references: [id])
+
+  @@unique([practicaId, numero], map: "ux_periodo")
+  @@map("periodo_mensual")
+}
+
+model DocumentoPractica {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  practicaId     String   @map("practica_id") @db.Uuid
+  tipo           String   @db.VarChar(30)
+  nombreOriginal String   @map("nombre_original") @db.VarChar(255)
+  ruta           String   @db.VarChar(400)
+  hashSha256     String   @map("hash_sha256") @db.Char(64)
+  tamanoBytes    Int      @map("tamano_bytes")
+  subidoEn       DateTime @default(now()) @map("subido_en") @db.Timestamptz(6)
+
+  practica Practica @relation(fields: [practicaId], references: [id])
+
+  @@map("documento_practica")
+}
+
+// ------------------------- Modulo Auditoria -------------------------
+
+model RegistroAuditoria {
+  id        BigInt   @id @default(autoincrement())
+  usuarioId String?  @map("usuario_id") @db.Uuid
+  accion    String   @db.VarChar(60)
+  entidad   String   @db.VarChar(60)
+  entidadId String   @map("entidad_id") @db.Uuid
+  datos     Json?
+  ocurridoEn DateTime @default(now()) @map("ocurrido_en") @db.Timestamptz(6)
+
+  @@index([entidad, entidadId], map: "ix_auditoria_entidad")
+  @@map("registro_auditoria")
+}
+
+// ------------------------- Modulo Notificaciones -------------------------
+
+model Notificacion {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  destinatarioId String   @map("destinatario_id") @db.Uuid
+  tipoEvento     String   @map("tipo_evento") @db.VarChar(40)
+  mensaje        String
+  leida          Boolean  @default(false)
+  creadaEn       DateTime @default(now()) @map("creada_en") @db.Timestamptz(6)
+
+  destinatario Usuario @relation(fields: [destinatarioId], references: [id])
+
+  @@map("notificacion")
+}
+
+model MensajeOutbox {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tipoEvento      String    @map("tipo_evento") @db.VarChar(40)
+  correoDestino   String    @map("correo_destino") @db.VarChar(150)
+  payload         Json
+  estado          String    @default("PENDIENTE") @db.VarChar(10)
+  intentos        Int       @default(0) @db.SmallInt
+  proximoIntentoEn DateTime @default(now()) @map("proximo_intento_en") @db.Timestamptz(6)
+  ultimoError     String?   @map("ultimo_error")
+  enviadoEn       DateTime? @map("enviado_en") @db.Timestamptz(6)
+  creadoEn        DateTime  @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  @@index([estado, proximoIntentoEn], map: "ix_outbox_pendiente")
+  @@map("mensaje_outbox")
+}
