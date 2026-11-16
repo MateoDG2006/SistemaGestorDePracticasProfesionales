@@ -37,11 +37,12 @@ export async function listarAprobadasSinFormalizar() {
   return sols.map((s) => ({
     id: s.id,
     numero: s.numero,
-    estudiante: s.estudiante.nombre,
-    empresa: s.empresa?.nombre ?? null,
-    supervisorCorreo: s.supervisorCorreo,
+    estado: s.estado,
+    estudianteNombre: s.estudiante.nombre,
+    empresaNombre: s.empresa?.nombre ?? "",
+    supervisorCorreo: s.supervisorCorreo ?? "",
     asesorSugeridoId: s.asesorSugeridoId,
-    fechaInicio: s.fechaInicio,
-    fechaFin: s.fechaFin,
+    fechaInicio: s.fechaInicio ? s.fechaInicio.toISOString().slice(0, 10) : null,
+    fechaFin: s.fechaFin ? s.fechaFin.toISOString().slice(0, 10) : null,
   }));
 }

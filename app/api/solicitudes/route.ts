@@ -3,7 +3,8 @@ import { ejecutar, leerJson, leerFecha } from "@/src/shared/http/responder";
 import { ok } from "@/src/shared/errores/respuesta";
 import { arrancar } from "@/src/arranque";
 import { requerirUsuario } from "@/src/shared/auth/sesion";
-import { Rol } from "@/src/shared/dominio/enums";
+import { Rol, EstadoSolicitud } from "@/src/shared/dominio/enums";
+import { PARAM_SIN_FORMALIZAR } from "@/src/shared/dominio/reglas";
 import { crearBorrador, type SolicitudInput } from "@/src/modules/solicitudes/aplicacion/guardarSolicitud";
 import { consultarBandeja } from "@/src/modules/solicitudes/aplicacion/consultas";
 import { listarAprobadasSinFormalizar } from "@/src/modules/solicitudes/infra/solicitudesApi";
@@ -63,7 +64,7 @@ export async function GET(req: Request) {
     await requerirUsuario(Rol.VICEDECANATO);
     const sp = new URL(req.url).searchParams;
     const estado = sp.get("estado");
-    if (estado === "APROBADA" && sp.get("sinFormalizar") === "true") {
+    if (estado === EstadoSolicitud.APROBADA && sp.get(PARAM_SIN_FORMALIZAR) === "true") {
       return ok(await listarAprobadasSinFormalizar());
     }
     const pagina = Number(sp.get("pagina") ?? "1");

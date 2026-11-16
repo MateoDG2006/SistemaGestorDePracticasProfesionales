@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError, API_MODE, iniciarSesion, sesionActual } from "../_lib/api";
-import { RUTA_INICIO } from "../_lib/format";
+import { RUTA_INICIO } from "@/src/shared/dominio/reglas";
 import { Button, Mensaje, Spinner } from "../_components/ui";
 import { Campo, Input } from "../_components/form";
 

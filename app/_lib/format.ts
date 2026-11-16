@@ -29,14 +29,6 @@ export function tamano(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-/** Horas restantes hasta una fecha ISO (para invitaciones). */
 export function horasRestantes(iso: string): number {
   return Math.max(0, Math.round((Date.parse(iso) - Date.now()) / 3600e3));
 }
-
-export const RUTA_INICIO: Record<string, string> = {
-  ESTUDIANTE: "/estudiante",
-  VICEDECANATO: "/vicedecanato",
-  SUPERVISOR: "/supervisor",
-  ASESOR: "/vicedecanato",
-};

@@ -1,7 +1,7 @@
 import { prisma, type Tx } from "@/src/shared/db/prisma";
 import { fechaAPrisma } from "@/src/shared/db/fecha";
 import { EstadoSolicitud } from "@/src/shared/dominio/enums";
-import { puedeEditarBorrador } from "../dominio/estados";
+import { solicitudEditable } from "@/src/shared/dominio/reglas";
 import { registrarAuditoria } from "@/src/modules/auditoria/auditoriaApi";
 import {
   ErrorConflicto,
@@ -107,7 +107,7 @@ export async function actualizarBorrador(
     const sol = await tx.solicitud.findUnique({ where: { id: solicitudId } });
     if (!sol) throw new ErrorNoEncontrado("Solicitud no encontrada.");
     if (sol.estudianteId !== estudianteId) throw new ErrorNoAutorizado();
-    if (!puedeEditarBorrador(sol.estado as EstadoSolicitud)) {
+    if (!solicitudEditable(sol.estado)) {
       throw new ErrorConflicto("La solicitud no puede editarse en su estado actual.");
     }
 

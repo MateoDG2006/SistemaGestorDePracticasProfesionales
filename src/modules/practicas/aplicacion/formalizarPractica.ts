@@ -8,8 +8,8 @@ import { bus } from "@/src/shared/eventos/bus";
 import { TipoEvento, type PracticaFormalizada } from "@/src/shared/eventos/tipos";
 import { obtenerAprobada } from "@/src/modules/solicitudes/infra/solicitudesApi";
 import { obtenerDocente, invitarSupervisor } from "@/src/modules/identidad/infra/identidadApi";
-import { generarPeriodos } from "../dominio/calculadoraPeriodos";
-import { validarFormalizacion, estadoInicial } from "../dominio/practica";
+import { generarPeriodos, estadoInicialPractica } from "@/src/shared/dominio/reglas";
+import { validarFormalizacion } from "../dominio/practica";
 import {
   ErrorNoEncontrado,
   ErrorValidacion,
@@ -28,6 +28,7 @@ export interface DatosFormalizacion {
   fechaInicio?: Temporal.PlainDate | null;
   fechaFin?: Temporal.PlainDate | null;
   convenio: ConvenioEntrada;
+  supervisorCorreo?: string | null;
 }
 
 function esUnicidad(e: unknown): boolean {
@@ -51,22 +52,21 @@ export async function formalizarPractica(vicedecanoId: string, datos: DatosForma
 
   const fechaInicio = datos.fechaInicio ?? sol.fechaInicio;
   const fechaFin = datos.fechaFin ?? sol.fechaFin;
+  const supervisorCorreo = datos.supervisorCorreo?.trim() || sol.supervisorCorreo;
 
-  // Reglas de dominio (RN-03, RN-04, convenio).
   validarFormalizacion({
     asesorCorreo: asesor.correo,
-    supervisorCorreo: sol.supervisorCorreo,
+    supervisorCorreo,
     fechaInicio,
     fechaFin,
     tieneConvenio: !!datos.convenio?.buffer?.byteLength,
   });
 
-  // Valida y guarda el convenio (RNF-09) antes de abrir la transaccion.
   validarPdf(datos.convenio.buffer, datos.convenio.mime);
 
-  const hoy = Temporal.Now.plainDateISO("UTC");
-  const estado = estadoInicial(fechaInicio, hoy);
-  const periodos = generarPeriodos(fechaInicio, fechaFin);
+  const hoy = Temporal.Now.plainDateISO("UTC").toString();
+  const estado = estadoInicialPractica(fechaInicio.toString(), hoy);
+  const periodos = generarPeriodos(fechaInicio.toString(), fechaFin.toString());
 
   try {
     return await prisma.$transaction(async (tx) => {
@@ -75,7 +75,7 @@ export async function formalizarPractica(vicedecanoId: string, datos: DatosForma
           solicitudId: sol.id,
           estudianteId: sol.estudianteId,
           asesorId,
-          supervisorCorreo: sol.supervisorCorreo,
+          supervisorCorreo,
           fechaInicio: fechaAPrisma(fechaInicio),
           fechaFin: fechaAPrisma(fechaFin),
           estado,
@@ -101,14 +101,14 @@ export async function formalizarPractica(vicedecanoId: string, datos: DatosForma
         data: periodos.map((p) => ({
           practicaId: practica.id,
           numero: p.numero,
-          fechaInicio: fechaAPrisma(p.fechaInicio),
-          fechaCierre: fechaAPrisma(p.fechaCierre),
-          venceInforme: fechaAPrisma(p.venceInforme),
+          fechaInicio: fechaAPrisma(Temporal.PlainDate.from(p.fechaInicio)),
+          fechaCierre: fechaAPrisma(Temporal.PlainDate.from(p.fechaCierre)),
+          venceInforme: fechaAPrisma(Temporal.PlainDate.from(p.venceInforme)),
         })),
       });
 
       // Supervisor: invitacion de un solo uso o vinculacion de cuenta existente (CU-03 A1).
-      const inv = await invitarSupervisor(tx, practica.id, sol.supervisorCorreo);
+      const inv = await invitarSupervisor(tx, practica.id, supervisorCorreo);
       let invitacionToken: string | undefined;
       let supervisorVinculadoId: string | undefined;
       if (inv.tipo === "VINCULADO") {
@@ -134,7 +134,7 @@ export async function formalizarPractica(vicedecanoId: string, datos: DatosForma
         practicaId: practica.id,
         estudianteId: sol.estudianteId,
         asesorId,
-        supervisorCorreo: sol.supervisorCorreo,
+        supervisorCorreo,
         invitacionToken,
         supervisorVinculadoId,
       };

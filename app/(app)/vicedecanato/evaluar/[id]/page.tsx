@@ -22,6 +22,8 @@ import {
   Spinner,
 } from "../../../../_components/ui";
 import { ArchivoPdf, Campo, Checkbox, Input, TextArea } from "../../../../_components/form";
+import { puedeEvaluar, textoLimitePdf } from "@/src/shared/dominio/reglas";
+import { TipoDocumento } from "@/src/shared/dominio/enums";
 
 type Errores = Record<string, string>;
 
@@ -68,7 +70,7 @@ export default function Evaluar() {
       if (comision) {
         documentoComisionId =
           API_MODE === "real"
-            ? (await subirDocumentoSolicitud(sol.id, "RECOMENDACION_COMISION", comision)).id
+            ? (await subirDocumentoSolicitud(sol.id, TipoDocumento.RECOMENDACION_COMISION, comision)).id
             : `com-${comision.name}`;
       }
       const input: EvaluacionInput = {
@@ -119,7 +121,7 @@ export default function Evaluar() {
   }
 
   const asesor = docentes.find((d) => d.id === sol.asesorSugeridoId);
-  const yaResuelta = sol.estado !== "ENVIADA";
+  const yaResuelta = !puedeEvaluar(sol.estado);
 
   return (
     <>
@@ -158,19 +160,23 @@ export default function Evaluar() {
             <Checkbox checked={v1} onChange={setV1}>Asignaturas aprobadas</Checkbox>
             <Checkbox checked={v2} onChange={setV2}>Índice mínimo</Checkbox>
             <Checkbox checked={v3} onChange={setV3}>Documentación completa</Checkbox>
-            {errores.verificacion && <p className="text-xs font-medium text-[#616161]">⚠ {errores.verificacion}</p>}
+            {(errores.asignaturasAprobadas || errores.indiceMinimo || errores.documentacionCompleta) && (
+              <p className="text-xs font-medium text-[#616161]">
+                ⚠ {errores.asignaturasAprobadas || errores.indiceMinimo || errores.documentacionCompleta}
+              </p>
+            )}
           </div>
           <div className="grid gap-4">
             <Campo etiqueta="Jefe de Departamento" error={errores.jefeDepartamento}>
               <Input value={jefe} onChange={setJefe} error={errores.jefeDepartamento} />
             </Campo>
-            <Campo etiqueta="Fecha de aprobación del Jefe">
-              <Input value={fechaJefe} onChange={setFechaJefe} type="date" />
+            <Campo etiqueta="Fecha de aprobación del Jefe" error={errores.fechaAprobacionJefe}>
+              <Input value={fechaJefe} onChange={setFechaJefe} type="date" error={errores.fechaAprobacionJefe} />
             </Campo>
           </div>
         </div>
         <div className="mt-4 grid gap-4">
-          <Campo etiqueta="Recomendación de la Comisión (PDF)" error={errores.documentoComision}>
+          <Campo etiqueta={`Recomendación de la Comisión (PDF ≤ ${textoLimitePdf()})`} error={errores.documentoComision}>
             <ArchivoPdf onSelect={setComision} error={errores.documentoComision} />
           </Campo>
           <Campo etiqueta="Observaciones / motivo (obligatorio al devolver o rechazar)" error={errores.observaciones}>

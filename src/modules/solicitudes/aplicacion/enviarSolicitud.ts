@@ -1,7 +1,7 @@
 import { prisma, type Tx } from "@/src/shared/db/prisma";
 import { fechaDePrismaOpcional } from "@/src/shared/db/fecha";
 import { Rol, EstadoSolicitud, TipoDocumento } from "@/src/shared/dominio/enums";
-import { puedeEnviar } from "../dominio/estados";
+import { solicitudEditable } from "@/src/shared/dominio/reglas";
 import { validarEnviable } from "../dominio/solicitud";
 import { registrarAuditoria } from "@/src/modules/auditoria/auditoriaApi";
 import { bus } from "@/src/shared/eventos/bus";
@@ -27,7 +27,7 @@ export async function enviarSolicitud(solicitudId: string, estudianteId: string)
     const sol = await tx.solicitud.findUnique({ where: { id: solicitudId } });
     if (!sol) throw new ErrorNoEncontrado("Solicitud no encontrada.");
     if (sol.estudianteId !== estudianteId) throw new ErrorNoAutorizado();
-    if (!puedeEnviar(sol.estado as EstadoSolicitud)) {
+    if (!solicitudEditable(sol.estado)) {
       throw new ErrorConflicto("La solicitud no puede enviarse en su estado actual.");
     }
 

@@ -1,11 +1,10 @@
 import { prisma } from "@/src/shared/db/prisma";
 import { fechaAPrisma } from "@/src/shared/db/fecha";
-import { Decision, EstadoSolicitud } from "@/src/shared/dominio/enums";
-import { puedeEvaluar } from "../dominio/estados";
+import { EstadoSolicitud } from "@/src/shared/dominio/enums";
+import { efectoDecision, puedeEvaluar, TipoEvento } from "@/src/shared/dominio/reglas";
 import { validarEvaluacion, type DatosEvaluacion } from "../dominio/evaluacion";
 import { registrarAuditoria } from "@/src/modules/auditoria/auditoriaApi";
 import { bus } from "@/src/shared/eventos/bus";
-import { TipoEvento } from "@/src/shared/eventos/tipos";
 import type {
   SolicitudAprobada,
   SolicitudDevuelta,
@@ -16,14 +15,6 @@ import {
   ErrorConflicto,
 } from "@/src/shared/errores/errores";
 
-const ESTADO_DESTINO: Record<string, EstadoSolicitud> = {
-  [Decision.APROBAR]: EstadoSolicitud.APROBADA,
-  [Decision.DEVOLVER]: EstadoSolicitud.DEVUELTA,
-  [Decision.RECHAZAR]: EstadoSolicitud.RECHAZADA,
-};
-
-// CU-02 pasos 7-10: aprueba, devuelve o rechaza con control de concurrencia
-// optimista (D11, E3). La evaluacion se guarda como historial (RN-06).
 export async function evaluarSolicitud(
   vicedecanoId: string,
   solicitudId: string,
@@ -31,7 +22,11 @@ export async function evaluarSolicitud(
   datos: DatosEvaluacion,
 ) {
   validarEvaluacion(datos);
-  const destino = ESTADO_DESTINO[datos.decision];
+  const efecto = efectoDecision(datos.decision);
+  if (!efecto) {
+    throw new ErrorConflicto("Decision invalida.");
+  }
+  const destino = efecto.estado;
 
   return prisma.$transaction(async (tx) => {
     const sol = await tx.solicitud.findUnique({ where: { id: solicitudId } });
@@ -40,7 +35,6 @@ export async function evaluarSolicitud(
       throw new ErrorConflicto(`La solicitud ya no esta "Enviada" (estado actual: ${sol.estado}).`);
     }
 
-    // Si la recomendacion de la Comision pertenece a otra solicitud, se rechaza.
     if (datos.documentoComisionId) {
       const doc = await tx.documentoSolicitud.findUnique({ where: { id: datos.documentoComisionId } });
       if (!doc || doc.solicitudId !== solicitudId) {
@@ -48,7 +42,6 @@ export async function evaluarSolicitud(
       }
     }
 
-    // UPDATE ... WHERE id = ? AND version = ? AND estado = 'ENVIADA' (CU-02 E3).
     const actualizado = await tx.solicitud.updateMany({
       where: { id: solicitudId, version, estado: EstadoSolicitud.ENVIADA },
       data: { estado: destino, version: { increment: 1 } },
@@ -84,12 +77,12 @@ export async function evaluarSolicitud(
       entidadId: solicitudId,
     });
 
-    if (datos.decision === Decision.APROBAR) {
-      const ev: SolicitudAprobada = { tipo: TipoEvento.SolicitudAprobada, solicitudId, estudianteId: sol.estudianteId };
+    if (efecto.evento === TipoEvento.SolicitudAprobada) {
+      const ev: SolicitudAprobada = { tipo: efecto.evento, solicitudId, estudianteId: sol.estudianteId };
       await bus.publicar(tx, ev);
-    } else if (datos.decision === Decision.DEVOLVER) {
+    } else if (efecto.evento === TipoEvento.SolicitudDevuelta) {
       const ev: SolicitudDevuelta = {
-        tipo: TipoEvento.SolicitudDevuelta,
+        tipo: efecto.evento,
         solicitudId,
         estudianteId: sol.estudianteId,
         observaciones: datos.observaciones ?? "",
@@ -97,7 +90,7 @@ export async function evaluarSolicitud(
       await bus.publicar(tx, ev);
     } else {
       const ev: SolicitudRechazada = {
-        tipo: TipoEvento.SolicitudRechazada,
+        tipo: efecto.evento,
         solicitudId,
         estudianteId: sol.estudianteId,
         motivo: datos.observaciones ?? "",

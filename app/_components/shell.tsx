@@ -21,6 +21,7 @@ import {
   LuSquareCheck,
 } from "react-icons/lu";
 import type { IconType } from "react-icons";
+import { RUTA_INICIO } from "@/src/shared/dominio/reglas";
 import { Avatar, Spinner } from "./ui";
 
 interface Item {
@@ -31,23 +32,23 @@ interface Item {
 
 const NAV: Record<string, Item[]> = {
   ESTUDIANTE: [
-    { href: "/estudiante", etiqueta: "Inicio", icono: LuLayoutGrid },
+    { href: RUTA_INICIO.ESTUDIANTE, etiqueta: "Inicio", icono: LuLayoutGrid },
     { href: "/estudiante/solicitud", etiqueta: "Solicitud", icono: LuFileText },
     { href: "/estudiante/solicitudes", etiqueta: "Mis solicitudes", icono: LuSquareCheck },
   ],
   VICEDECANATO: [
-    { href: "/vicedecanato", etiqueta: "Bandeja", icono: LuInbox },
+    { href: RUTA_INICIO.VICEDECANATO, etiqueta: "Bandeja", icono: LuInbox },
     { href: "/vicedecanato/formalizar", etiqueta: "Formalizar", icono: LuSquareCheck },
     { href: "/vicedecanato/practicas", etiqueta: "Prácticas", icono: LuBriefcase },
   ],
   SUPERVISOR: [
-    { href: "/supervisor", etiqueta: "Invitaciones", icono: LuMail },
+    { href: RUTA_INICIO.SUPERVISOR, etiqueta: "Invitaciones", icono: LuMail },
   ],
-  ASESOR: [{ href: "/vicedecanato", etiqueta: "Bandeja", icono: LuInbox }],
+  ASESOR: [{ href: RUTA_INICIO.ASESOR, etiqueta: "Bandeja", icono: LuInbox }],
 };
 
 function activo(pathname: string, href: string) {
-  if (href === "/estudiante" || href === "/vicedecanato" || href === "/supervisor") {
+  if ((Object.values(RUTA_INICIO) as string[]).includes(href)) {
     return pathname === href;
   }
   return pathname === href || pathname.startsWith(href + "/");

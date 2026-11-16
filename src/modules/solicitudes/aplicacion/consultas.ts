@@ -1,9 +1,12 @@
 import { prisma } from "@/src/shared/db/prisma";
-import { Rol, EstadoSolicitud } from "@/src/shared/dominio/enums";
+import { Rol, EstadoSolicitud, TipoDocumento } from "@/src/shared/dominio/enums";
 import { ErrorNoEncontrado, ErrorNoAutorizado } from "@/src/shared/errores/errores";
 import type { UsuarioSesion } from "@/src/shared/auth/sesion";
 
-// CU-02 pasos 1-2: bandeja de solicitudes "Enviadas", de la mas antigua a la mas reciente.
+function dia(d: Date | null | undefined): string | null {
+  return d ? d.toISOString().slice(0, 10) : null;
+}
+
 export async function consultarBandeja(pagina = 1, tamano = 20) {
   const skip = Math.max(0, pagina - 1) * tamano;
   const [items, total] = await Promise.all([
@@ -23,46 +26,94 @@ export async function consultarBandeja(pagina = 1, tamano = 20) {
     items: items.map((s) => ({
       id: s.id,
       numero: s.numero,
-      estudiante: s.estudiante.nombre,
-      empresa: s.empresa?.nombre ?? null,
-      enviadaEn: s.enviadaEn,
+      estado: s.estado,
       version: s.version,
+      estudianteNombre: s.estudiante.nombre,
+      empresaNombre: s.empresa?.nombre ?? "",
+      enviadaEn: s.enviadaEn?.toISOString() ?? null,
     })),
   };
 }
 
-// CU-01 GET /mias: lista de solicitudes del estudiante con estado y observaciones.
 export async function consultarMias(estudianteId: string) {
   const sols = await prisma.solicitud.findMany({
     where: { estudianteId },
     orderBy: { creadaEn: "desc" },
-    include: { evaluaciones: { orderBy: { evaluadoEn: "desc" }, take: 1 } },
+    include: {
+      estudiante: { select: { nombre: true, correo: true } },
+      empresa: true,
+      documentos: { where: { tipo: TipoDocumento.NOTA_ACEPTACION }, take: 1 },
+      evaluaciones: { orderBy: { evaluadoEn: "desc" }, take: 1 },
+    },
   });
-  return sols.map((s) => ({
-    id: s.id,
-    numero: s.numero,
-    estado: s.estado,
-    version: s.version,
-    fechaInicio: s.fechaInicio,
-    fechaFin: s.fechaFin,
-    observaciones: s.evaluaciones[0]?.observaciones ?? null,
-  }));
+  return sols.map((s) => {
+    const nota = s.documentos[0];
+    return {
+      id: s.id,
+      numero: s.numero,
+      estado: s.estado,
+      version: s.version,
+      estudianteNombre: s.estudiante.nombre,
+      estudianteCorreo: s.estudiante.correo,
+      empresaNombre: s.empresa?.nombre ?? "",
+      empresaDireccion: s.empresa?.direccion ?? "",
+      supervisorNombre: s.supervisorNombre ?? "",
+      supervisorCargo: s.supervisorCargo ?? "",
+      supervisorCorreo: s.supervisorCorreo ?? "",
+      supervisorTelefono: s.supervisorTelefono ?? "",
+      objetivo: s.objetivo ?? "",
+      actividades: s.actividades ?? "",
+      fechaInicio: dia(s.fechaInicio),
+      fechaFin: dia(s.fechaFin),
+      asesorSugeridoId: s.asesorSugeridoId,
+      consentimientoDatos: s.consentimientoDatos,
+      notaAceptacion: nota
+        ? { id: nota.id, nombreOriginal: nota.nombreOriginal, tamanoBytes: nota.tamanoBytes }
+        : null,
+      enviadaEn: s.enviadaEn?.toISOString() ?? null,
+      ultimaObservacion: s.evaluaciones[0]?.observaciones ?? null,
+    };
+  });
 }
 
-// CU-02 GET /{id}: detalle con documentos y version. Autoriza Vicedecanato o propietario.
 export async function obtenerDetalle(actor: UsuarioSesion, solicitudId: string) {
   const s = await prisma.solicitud.findUnique({
     where: { id: solicitudId },
     include: {
+      estudiante: { select: { nombre: true, correo: true } },
       empresa: true,
-      asesorSugerido: { select: { id: true, nombre: true, correo: true } },
-      documentos: { select: { id: true, tipo: true, nombreOriginal: true, tamanoBytes: true, subidoEn: true } },
-      evaluaciones: { orderBy: { evaluadoEn: "desc" } },
+      documentos: { select: { id: true, tipo: true, nombreOriginal: true, tamanoBytes: true } },
+      evaluaciones: { orderBy: { evaluadoEn: "desc" }, take: 1 },
     },
   });
   if (!s) throw new ErrorNoEncontrado("Solicitud no encontrada.");
   if (actor.rol !== Rol.VICEDECANATO && s.estudianteId !== actor.id) {
     throw new ErrorNoAutorizado();
   }
-  return s;
+  const nota = s.documentos.find((d) => d.tipo === TipoDocumento.NOTA_ACEPTACION);
+  return {
+    id: s.id,
+    numero: s.numero,
+    estado: s.estado,
+    version: s.version,
+    estudianteNombre: s.estudiante.nombre,
+    estudianteCorreo: s.estudiante.correo,
+    empresaNombre: s.empresa?.nombre ?? "",
+    empresaDireccion: s.empresa?.direccion ?? "",
+    supervisorNombre: s.supervisorNombre ?? "",
+    supervisorCargo: s.supervisorCargo ?? "",
+    supervisorCorreo: s.supervisorCorreo ?? "",
+    supervisorTelefono: s.supervisorTelefono ?? "",
+    objetivo: s.objetivo ?? "",
+    actividades: s.actividades ?? "",
+    fechaInicio: dia(s.fechaInicio),
+    fechaFin: dia(s.fechaFin),
+    asesorSugeridoId: s.asesorSugeridoId,
+    consentimientoDatos: s.consentimientoDatos,
+    notaAceptacion: nota
+      ? { id: nota.id, nombreOriginal: nota.nombreOriginal, tamanoBytes: nota.tamanoBytes }
+      : null,
+    enviadaEn: s.enviadaEn?.toISOString() ?? null,
+    ultimaObservacion: s.evaluaciones[0]?.observaciones ?? null,
+  };
 }

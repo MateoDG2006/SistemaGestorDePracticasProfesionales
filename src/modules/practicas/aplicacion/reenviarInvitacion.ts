@@ -4,6 +4,7 @@ import { invitarSupervisor } from "@/src/modules/identidad/infra/identidadApi";
 import { encolarCorreo } from "@/src/modules/notificaciones/infra/encolar";
 import { registrarAuditoria } from "@/src/modules/auditoria/auditoriaApi";
 import { ErrorNoEncontrado, ErrorConflicto } from "@/src/shared/errores/errores";
+import { enlaceInvitacion } from "@/src/shared/dominio/reglas";
 
 const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
 
@@ -26,7 +27,7 @@ export async function reenviarInvitacion(vicedecanoId: string, practicaId: strin
       throw new ErrorConflicto("El correo del supervisor ya tiene una cuenta.");
     }
 
-    const enlace = `${APP_URL}/invitaciones/${inv.token}`;
+    const enlace = enlaceInvitacion(APP_URL, inv.token);
     await encolarCorreo(tx, practica.supervisorCorreo, "InvitacionReenviada", {
       mensaje: `Se reenvio su invitacion de supervisor. Acepte su acceso aqui: ${enlace}`,
       practicaId,

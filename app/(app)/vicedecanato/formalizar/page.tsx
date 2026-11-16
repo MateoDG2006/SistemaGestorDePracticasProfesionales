@@ -20,6 +20,7 @@ import {
   Spinner,
 } from "../../../_components/ui";
 import { ArchivoPdf, Campo, Input, Select } from "../../../_components/form";
+import { CANTIDAD_PERIODOS, textoDuracionMinima, textoLimitePdf } from "@/src/shared/dominio/reglas";
 
 type Errores = Record<string, string>;
 
@@ -66,13 +67,19 @@ export default function Formalizar() {
     setAviso(null);
     setEnviando(true);
     try {
+      if (!convenio) {
+        setErrores({ convenio: "El convenio es obligatorio." });
+        setAviso("Revise los campos marcados.");
+        setEnviando(false);
+        return;
+      }
       await formalizarPractica({
         solicitudId: sel.id,
         asesorId,
         supervisorCorreo: supervisor,
         fechaInicio: fi,
         fechaFin: ff,
-      });
+      }, convenio);
       router.push("/vicedecanato/practicas?formalizada=1");
     } catch (e) {
       if (e instanceof ApiError) {
@@ -102,7 +109,7 @@ export default function Formalizar() {
         </Card>
       ) : (
         <Card className="p-6">
-          <SectionTitle titulo="Datos de la práctica" subtitulo="Se generarán 6 períodos mensuales y la invitación al supervisor" />
+          <SectionTitle titulo="Datos de la práctica" subtitulo={`Se generarán ${CANTIDAD_PERIODOS} períodos mensuales y la invitación al supervisor`} />
           <div className="mt-5 grid gap-4">
             <Campo etiqueta="Solicitud aprobada">
               <Select
@@ -129,13 +136,13 @@ export default function Formalizar() {
               <Campo etiqueta="Fecha de inicio">
                 <Input value={fi} onChange={setFi} type="date" />
               </Campo>
-              <Campo etiqueta="Fecha de fin" error={errores.fechaFin} hint="Duración mínima: 6 meses (RN-03).">
+              <Campo etiqueta="Fecha de fin" error={errores.fechaFin} hint={textoDuracionMinima()}>
                 <Input value={ff} onChange={setFf} type="date" error={errores.fechaFin} />
               </Campo>
             </div>
 
-            <Campo etiqueta="Convenio firmado (PDF ≤ 10 MB)">
-              <ArchivoPdf onSelect={setConvenio} />
+            <Campo etiqueta={`Convenio firmado (PDF ≤ ${textoLimitePdf()})`} error={errores.convenio}>
+              <ArchivoPdf onSelect={setConvenio} error={errores.convenio} />
             </Campo>
 
             {sel && (

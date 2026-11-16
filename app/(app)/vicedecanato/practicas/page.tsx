@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { listarPracticas, reenviarInvitacion } from "../../../_lib/api";
 import type { Practica } from "../../../_lib/types";
 import { fecha, horasRestantes } from "../../../_lib/format";
+import { CANTIDAD_PERIODOS, textoVencimientoInvitacion } from "@/src/shared/dominio/reglas";
 import {
   Button,
   Card,
@@ -33,7 +34,7 @@ function Contenido() {
   const formalizada = params.get("formalizada");
   const [lista, setLista] = useState<Practica[] | null>(null);
   const [aviso, setAviso] = useState<string | null>(
-    formalizada ? "Práctica formalizada: se generaron los 6 períodos y se envió la invitación al supervisor." : null,
+    formalizada ? `Práctica formalizada: se generaron los ${CANTIDAD_PERIODOS} períodos y se envió la invitación al supervisor.` : null,
   );
   const [reenviando, setReenviando] = useState<string>("");
 
@@ -46,7 +47,7 @@ function Contenido() {
     setReenviando(id);
     try {
       await reenviarInvitacion(id);
-      setAviso("Invitación reenviada (vence en 72 h).");
+      setAviso(`Invitación reenviada (vence en ${textoVencimientoInvitacion()}).`);
       cargar();
     } finally {
       setReenviando("");

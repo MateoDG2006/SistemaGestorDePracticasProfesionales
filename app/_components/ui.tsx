@@ -177,8 +177,12 @@ const mapaPractica: Record<EstadoPractica, Tono> = {
   POR_INICIAR: "suave",
   EN_CURSO: "solido",
 };
+const etiquetaPractica: Record<EstadoPractica, string> = {
+  POR_INICIAR: "Por iniciar",
+  EN_CURSO: "En curso",
+};
 export const ChipPractica = ({ estado }: { estado: EstadoPractica }) =>
-  chip(mapaPractica[estado], estado === "EN_CURSO" ? "En curso" : "Por iniciar");
+  chip(mapaPractica[estado], etiquetaPractica[estado]);
 
 const mapaInvitacion: Record<EstadoInvitacion, Tono> = {
   PENDIENTE: "suave",

@@ -3,8 +3,9 @@ import { prisma } from "@/src/shared/db/prisma";
 import { generarToken } from "@/src/shared/crypto/hash";
 import { relojSistema, type Reloj } from "@/src/shared/reloj";
 import { Rol, EstadoInvitacion } from "@/src/shared/dominio/enums";
+import { INVITACION_TTL_HORAS, venceInvitacion } from "@/src/shared/dominio/reglas";
 
-const TTL_HORAS = Number(process.env.INVITACION_TTL_HORAS ?? "72");
+const TTL_HORAS = Number(process.env.INVITACION_TTL_HORAS ?? INVITACION_TTL_HORAS);
 
 export interface DocenteDto {
   id: string;
@@ -44,7 +45,7 @@ export async function invitarSupervisor(
     return { tipo: "VINCULADO", supervisorId: existente.id };
   }
   const { token, hash } = generarToken();
-  const venceEn = new Date(reloj.ahora().getTime() + TTL_HORAS * 3_600_000);
+  const venceEn = venceInvitacion(reloj.ahora(), TTL_HORAS);
   await tx.invitacion.create({
     data: {
       practicaId,

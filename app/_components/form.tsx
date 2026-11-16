@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 import { LuUpload } from "react-icons/lu";
 import { tamano } from "../_lib/format";
+import { excedePdf, mimePdfInvalido, textoLimitePdf } from "@/src/shared/dominio/reglas";
 
 export function Campo({
   etiqueta,
@@ -129,7 +130,6 @@ export function Checkbox({
   );
 }
 
-/** Selector de PDF con validación de tamaño/tipo del lado del cliente (413/415). */
 export function ArchivoPdf({
   onSelect,
   actual,
@@ -142,6 +142,8 @@ export function ArchivoPdf({
   const ref = useRef<HTMLInputElement>(null);
   const [nombre, setNombre] = useState<string | null>(actual ?? null);
   const [peso, setPeso] = useState<number | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const aviso = localError || error;
 
   return (
     <div>
@@ -149,7 +151,7 @@ export function ArchivoPdf({
         type="button"
         onClick={() => ref.current?.click()}
         className={`flex w-full items-center gap-3 rounded-[var(--radius-panel)] border border-dashed bg-surface-muted px-4 py-3 text-left text-sm transition-colors hover:bg-surface ${borde(
-          error,
+          aviso,
         )}`}
       >
         <span className="grid h-9 w-9 place-items-center rounded-full bg-surface text-ink-soft">
@@ -160,7 +162,7 @@ export function ArchivoPdf({
             {nombre ?? "Seleccionar archivo PDF"}
           </span>
           <span className="block text-xs text-ink-soft">
-            {peso !== null ? tamano(peso) : "Solo PDF · máximo 10 MB"}
+            {peso !== null ? tamano(peso) : `Solo PDF · máximo ${textoLimitePdf()}`}
           </span>
         </span>
       </button>
@@ -171,13 +173,28 @@ export function ArchivoPdf({
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0] ?? null;
+          if (f && excedePdf(f.size)) {
+            onSelect(null);
+            setNombre(null);
+            setPeso(null);
+            setLocalError(`"${f.name}" supera ${textoLimitePdf()}.`);
+            return;
+          }
+          if (f && (mimePdfInvalido(f.type) || (!f.type && !/\.pdf$/i.test(f.name)))) {
+            onSelect(null);
+            setNombre(null);
+            setPeso(null);
+            setLocalError(`"${f.name}" no es un PDF.`);
+            return;
+          }
+          setLocalError(null);
           onSelect(f);
           setNombre(f?.name ?? null);
           setPeso(f?.size ?? null);
         }}
       />
-      {error && (
-        <span className="mt-1 block text-xs font-medium text-[#616161]">⚠ {error}</span>
+      {aviso && (
+        <span className="mt-1 block text-xs font-medium text-[#616161]">⚠ {aviso}</span>
       )}
     </div>
   );

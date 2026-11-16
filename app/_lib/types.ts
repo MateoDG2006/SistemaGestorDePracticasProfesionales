@@ -3,20 +3,15 @@
 // El backend es la fuente de verdad; estos tipos describen lo que la UI
 // consume y envía.
 
-export type Rol = "ESTUDIANTE" | "VICEDECANATO" | "ASESOR" | "SUPERVISOR";
+import type {
+  Decision,
+  EstadoInvitacion,
+  EstadoPractica,
+  EstadoSolicitud,
+  Rol,
+} from "@/src/shared/dominio/enums";
 
-export type EstadoSolicitud =
-  | "BORRADOR"
-  | "ENVIADA"
-  | "DEVUELTA"
-  | "APROBADA"
-  | "RECHAZADA";
-
-export type EstadoPractica = "POR_INICIAR" | "EN_CURSO";
-
-export type Decision = "APROBAR" | "DEVOLVER" | "RECHAZAR";
-
-export type EstadoInvitacion = "PENDIENTE" | "USADA" | "VENCIDA" | "REVOCADA";
+export type { Decision, EstadoInvitacion, EstadoPractica, EstadoSolicitud, Rol };
 
 export interface Usuario {
   id: string;

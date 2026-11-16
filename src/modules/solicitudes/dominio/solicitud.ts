@@ -1,6 +1,6 @@
 import { ErrorValidacion, type CampoError } from "@/src/shared/errores/errores";
+import { cumpleDuracionMinima, MESES_DURACION_MINIMA } from "@/src/shared/dominio/reglas";
 
-// Reglas de dominio para enviar una solicitud (CU-01 paso 9).
 export interface DatosEnviable {
   empresaId: string | null;
   supervisorNombre: string | null;
@@ -13,7 +13,7 @@ export interface DatosEnviable {
   fechaFin: Temporal.PlainDate | null;
   consentimientoDatos: boolean;
   tieneNotaAceptacion: boolean;
-  asesorCorreo: string | null; // correo del asesor sugerido, si lo hay
+  asesorCorreo: string | null;
 }
 
 export function validarEnviable(d: DatosEnviable): void {
@@ -24,7 +24,7 @@ export function validarEnviable(d: DatosEnviable): void {
     }
   };
 
-  req(d.empresaId, "empresa", "Los datos de la empresa");
+  req(d.empresaId, "empresaNombre", "Los datos de la empresa");
   req(d.supervisorNombre, "supervisorNombre", "El nombre del supervisor");
   req(d.supervisorCargo, "supervisorCargo", "El cargo del supervisor");
   req(d.supervisorCorreo, "supervisorCorreo", "El correo del supervisor");
@@ -34,26 +34,25 @@ export function validarEnviable(d: DatosEnviable): void {
   req(d.fechaInicio, "fechaInicio", "La fecha de inicio");
   req(d.fechaFin, "fechaFin", "La fecha de fin");
 
-  // RNF-03: consentimiento de tratamiento de datos (CU-01 paso 8).
   if (!d.consentimientoDatos) {
     campos.push({ campo: "consentimientoDatos", error: "Debe aceptar el tratamiento de datos personales." });
   }
 
-  // CU-01 paso 7: nota de aceptacion de la empresa (PDF).
   if (!d.tieneNotaAceptacion) {
     campos.push({ campo: "notaAceptacion", error: "Debe adjuntar la nota de aceptacion de la empresa en PDF." });
   }
 
-  // RN-03: duracion minima de 6 meses (CU-01 E4).
   if (
     d.fechaInicio &&
     d.fechaFin &&
-    Temporal.PlainDate.compare(d.fechaFin, d.fechaInicio.add({ months: 6 })) < 0
+    !cumpleDuracionMinima(d.fechaInicio.toString(), d.fechaFin.toString())
   ) {
-    campos.push({ campo: "fechaFin", error: "La duracion minima es de 6 meses (Art. 39)." });
+    campos.push({
+      campo: "fechaFin",
+      error: `La duracion minima es de ${MESES_DURACION_MINIMA} meses (Art. 39).`,
+    });
   }
 
-  // RN-04: el supervisor no puede ser el asesor sugerido (CU-01 E5).
   if (
     d.supervisorCorreo &&
     d.asesorCorreo &&

@@ -11,6 +11,7 @@ import type {
   InvitacionVencida,
 } from "@/src/shared/eventos/tipos";
 import { Rol } from "@/src/shared/dominio/enums";
+import { enlaceInvitacion } from "@/src/shared/dominio/reglas";
 import { notificarEnPlataforma, encolarCorreo } from "../infra/encolar";
 
 const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
@@ -59,7 +60,7 @@ export function registrarSuscriptoresNotificaciones(): void {
     const ev = e as PracticaFormalizada;
 
     if (ev.invitacionToken) {
-      const enlace = `${APP_URL}/invitaciones/${ev.invitacionToken}`;
+      const enlace = enlaceInvitacion(APP_URL, ev.invitacionToken);
       await encolarCorreo(tx, ev.supervisorCorreo, ev.tipo, {
         mensaje: `Fue designado supervisor de una practica. Acepte su acceso aqui: ${enlace}`,
         practicaId: ev.practicaId,

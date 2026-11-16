@@ -5,6 +5,7 @@ import { misSolicitudes } from "../../_lib/api";
 import { useSesion } from "../../_lib/session-context";
 import type { Solicitud } from "../../_lib/types";
 import { fecha } from "../../_lib/format";
+import { pasoDeSolicitud, solicitudActiva, MESES_DURACION_MINIMA } from "@/src/shared/dominio/reglas";
 import {
   Button,
   Card,
@@ -23,22 +24,7 @@ import {
 import { AreaChart } from "../../_components/charts";
 import { LuCalendar, LuPlus } from "react-icons/lu";
 
-const EN_TRAMITE = ["BORRADOR", "ENVIADA", "DEVUELTA", "APROBADA"];
 const PASOS = ["Borrador", "Enviada", "Aprobada", "Formalizada"];
-
-function pasoActual(e?: string) {
-  switch (e) {
-    case "BORRADOR":
-      return 0;
-    case "ENVIADA":
-    case "DEVUELTA":
-      return 1;
-    case "APROBADA":
-      return 2;
-    default:
-      return 0;
-  }
-}
 
 export default function EstudianteInicio() {
   const { usuario } = useSesion();
@@ -48,7 +34,7 @@ export default function EstudianteInicio() {
     misSolicitudes().then(setLista).catch(() => setLista([]));
   }, []);
 
-  const actual = lista?.find((s) => EN_TRAMITE.includes(s.estado));
+  const actual = lista?.find((s) => solicitudActiva(s.estado));
   const nombre = usuario?.nombre.split(" ")[0] ?? "";
 
   return (
@@ -98,7 +84,7 @@ export default function EstudianteInicio() {
               <SectionTitle titulo="Progreso del trámite" subtitulo="De la solicitud a la formalización" />
               <div className="mt-5 flex items-center">
                 {PASOS.map((p, i) => {
-                  const done = i <= pasoActual(actual?.estado);
+                  const done = i <= pasoDeSolicitud(actual?.estado);
                   return (
                     <div key={p} className="flex flex-1 items-center last:flex-none">
                       <div className="flex flex-col items-center gap-1.5">
@@ -142,7 +128,7 @@ export default function EstudianteInicio() {
             />
             <StatCard
               etiqueta="Duración mínima"
-              valor="6 meses"
+              valor={`${MESES_DURACION_MINIMA} meses`}
               pie="requisito RN-03"
             />
           </div>

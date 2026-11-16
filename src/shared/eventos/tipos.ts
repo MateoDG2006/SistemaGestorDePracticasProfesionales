@@ -1,47 +1,40 @@
 import type { EventoDominio } from "./bus";
+import { TipoEvento } from "@/src/shared/dominio/reglas";
+
+export { TipoEvento };
 
 // Catalogo de eventos internos (Fase 2, Tabla 3). Los publica el modulo
 // dueno del cambio; Notificaciones es el unico suscriptor.
 
-export const TipoEvento = {
-  SolicitudEnviada: "SolicitudEnviada",
-  SolicitudDevuelta: "SolicitudDevuelta",
-  SolicitudRechazada: "SolicitudRechazada",
-  SolicitudAprobada: "SolicitudAprobada",
-  PracticaFormalizada: "PracticaFormalizada",
-  PracticaIniciada: "PracticaIniciada",
-  InvitacionVencida: "InvitacionVencida",
-} as const;
-
 export interface SolicitudEnviada extends EventoDominio {
-  tipo: "SolicitudEnviada";
+  tipo: typeof TipoEvento.SolicitudEnviada;
   solicitudId: string;
   numero: string;
   esCorreccion: boolean;
 }
 
 export interface SolicitudDevuelta extends EventoDominio {
-  tipo: "SolicitudDevuelta";
+  tipo: typeof TipoEvento.SolicitudDevuelta;
   solicitudId: string;
   estudianteId: string;
   observaciones: string;
 }
 
 export interface SolicitudRechazada extends EventoDominio {
-  tipo: "SolicitudRechazada";
+  tipo: typeof TipoEvento.SolicitudRechazada;
   solicitudId: string;
   estudianteId: string;
   motivo: string;
 }
 
 export interface SolicitudAprobada extends EventoDominio {
-  tipo: "SolicitudAprobada";
+  tipo: typeof TipoEvento.SolicitudAprobada;
   solicitudId: string;
   estudianteId: string;
 }
 
 export interface PracticaFormalizada extends EventoDominio {
-  tipo: "PracticaFormalizada";
+  tipo: typeof TipoEvento.PracticaFormalizada;
   practicaId: string;
   estudianteId: string;
   asesorId: string;
@@ -53,14 +46,14 @@ export interface PracticaFormalizada extends EventoDominio {
 }
 
 export interface PracticaIniciada extends EventoDominio {
-  tipo: "PracticaIniciada";
+  tipo: typeof TipoEvento.PracticaIniciada;
   practicaId: string;
   estudianteId: string;
   asesorId: string;
 }
 
 export interface InvitacionVencida extends EventoDominio {
-  tipo: "InvitacionVencida";
+  tipo: typeof TipoEvento.InvitacionVencida;
   practicaId: string;
   invitacionId: string;
 }

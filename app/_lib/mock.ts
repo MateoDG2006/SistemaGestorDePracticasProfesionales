@@ -6,9 +6,24 @@
 // Se activa con NEXT_PUBLIC_API_MODE=mock. En modo "real" nada de esto se usa.
 
 import { ApiError } from "./api";
+import {
+  efectoDecision,
+  cumpleDuracionMinima,
+  estadoInicialPractica,
+  excedePdf,
+  generarPeriodos,
+  MESES_DURACION_MINIMA,
+  mimePdfInvalido,
+  puedeEvaluar,
+  solicitudActiva,
+  solicitudEditable,
+  textoLimitePdf,
+  textoVencimientoInvitacion,
+  venceInvitacion,
+} from "@/src/shared/dominio/reglas";
+import { EstadoSolicitud } from "@/src/shared/dominio/enums";
 import type {
   Auditoria,
-  Decision,
   Docente,
   DocumentoRef,
   EvaluacionInput,
@@ -21,28 +36,8 @@ import type {
   Usuario,
 } from "./types";
 
-const MAX_BYTES = 10 * 1024 * 1024; // 10 MB (RNF-09)
 const uid = () => Math.random().toString(36).slice(2, 10);
 const hoy = () => new Date().toISOString().slice(0, 10);
-
-/* ---------- utilidades de fecha (igual que el prototipo) ---------- */
-function addMonths(s: string, n: number): string {
-  const [y, m, d] = s.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, 1));
-  dt.setUTCMonth(dt.getUTCMonth() + n);
-  const ult = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth() + 1, 0)).getUTCDate();
-  dt.setUTCDate(Math.min(d, ult));
-  return dt.toISOString().slice(0, 10);
-}
-function addDays(s: string, n: number): string {
-  const [y, m, d] = s.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  dt.setUTCDate(dt.getUTCDate() + n);
-  return dt.toISOString().slice(0, 10);
-}
-function duracionOk(i: string, f: string): boolean {
-  return Boolean(i && f && f >= addMonths(i, 6));
-}
 
 /* ---------- "base de datos" en memoria ---------- */
 interface UsuarioMock extends Usuario {
@@ -73,7 +68,7 @@ function plantillaSolicitud(parcial: Partial<Solicitud>): Solicitud {
   return {
     id: uid(),
     numero: null,
-    estado: "BORRADOR",
+    estado: EstadoSolicitud.BORRADOR,
     version: 0,
     estudianteNombre: "Ana Pérez",
     estudianteCorreo: "estudiante@utp.ac.pa",
@@ -98,17 +93,6 @@ function plantillaSolicitud(parcial: Partial<Solicitud>): Solicitud {
   };
 }
 
-function periodos(ini: string, fin: string) {
-  const r = [];
-  for (let i = 1; i <= 6; i++) {
-    const inicio = addMonths(ini, i - 1);
-    const cierre = i < 6 ? addDays(addMonths(ini, i), -1) : fin;
-    r.push({ numero: i, fechaInicio: inicio, fechaCierre: cierre, venceInforme: addDays(cierre, 15) });
-  }
-  return r;
-}
-
-// Estado inicial sembrado (persiste durante la sesión del navegador).
 function sembrar(): Estado {
   const doc = (nombre: string): DocumentoRef => ({ id: uid(), nombreOriginal: nombre, tamanoBytes: 240_000 });
   const solBase = {
@@ -161,10 +145,10 @@ function sembrar(): Estado {
       estudianteNombre: "Jorge Herrera", asesorNombre: "Dr. Carlos Mora",
       supervisorCorreo: "supervisor@empresa.com", supervisorVinculado: false,
       fechaInicio: pini, fechaFin: pfin, convenio: doc("convenio_firmado.pdf"),
-      periodos: periodos(pini, pfin),
+      periodos: generarPeriodos(pini, pfin),
       invitacion: {
         id: "inv-1", correoDestino: "supervisor@empresa.com",
-        venceEn: new Date(Date.now() + 72 * 3600e3).toISOString(), estado: "PENDIENTE",
+        venceEn: venceInvitacion(new Date()).toISOString(), estado: "PENDIENTE",
       },
     },
   ];
@@ -175,7 +159,7 @@ function sembrar(): Estado {
     tokens: { [invToken]: "prac-1" },
     notificaciones: [
       { id: uid(), tipoEvento: "SolicitudEnviada", mensaje: "Nueva solicitud SOL-2026-0008 de Luis González", leida: false, creadaEn: "2026-11-10T14:20:00.000Z", estadoOutbox: "ENVIADO" },
-      { id: uid(), tipoEvento: "PracticaFormalizada", mensaje: "Invitación para supervisar la práctica de Jorge Herrera (vence en 72 h).", leida: false, creadaEn: "2026-11-13T11:00:00.000Z", estadoOutbox: "PENDIENTE" },
+      { id: uid(), tipoEvento: "PracticaFormalizada", mensaje: `Invitación para supervisar la práctica de Jorge Herrera (vence en ${textoVencimientoInvitacion()}).`, leida: false, creadaEn: "2026-11-13T11:00:00.000Z", estadoOutbox: "PENDIENTE" },
     ],
     auditoria: [
       { id: 1, usuario: "Luis González", accion: "ENVIAR_SOLICITUD", entidad: "solicitud", ocurridoEn: "2026-11-10 09:20" },
@@ -264,8 +248,7 @@ export const mockApi = {
     await demora();
     // RN-02: una sola solicitud en trámite por estudiante.
     const enTramite = store().solicitudes.find(
-      (s) => s.estudianteCorreo === "estudiante@utp.ac.pa" &&
-        ["BORRADOR", "ENVIADA", "DEVUELTA", "APROBADA"].includes(s.estado),
+      (s) => s.estudianteCorreo === "estudiante@utp.ac.pa" && solicitudActiva(s.estado),
     );
     if (enTramite) {
       throw new ApiError("CONFLICTO", 409, `Ya tiene una solicitud en trámite (${enTramite.numero ?? "borrador"} – ${enTramite.estado}). RN-02.`);
@@ -275,14 +258,18 @@ export const mockApi = {
     persistir();
     return { ...s };
   },
-  async actualizarSolicitud(id: string, input: SolicitudInput): Promise<Solicitud> {
+  async actualizarSolicitud(id: string, version: number, input: SolicitudInput): Promise<Solicitud> {
     await demora();
     const s = store().solicitudes.find((x) => x.id === id);
     if (!s) throw new ApiError("NO_ENCONTRADO", 404, "Solicitud no encontrada.");
-    if (!["BORRADOR", "DEVUELTA"].includes(s.estado)) {
+    if (!solicitudEditable(s.estado)) {
       throw new ApiError("CONFLICTO", 409, "La solicitud no es editable en su estado actual.");
     }
+    if (s.version !== version) {
+      throw new ApiError("CONFLICTO", 409, "La solicitud fue modificada por otra operacion. Recargue.");
+    }
     Object.assign(s, aplicar(input));
+    s.version += 1;
     persistir();
     return { ...s };
   },
@@ -298,6 +285,9 @@ export const mockApi = {
     await demora();
     const s = store().solicitudes.find((x) => x.id === id);
     if (!s) throw new ApiError("NO_ENCONTRADO", 404, "Solicitud no encontrada.");
+    if (!solicitudEditable(s.estado)) {
+      throw new ApiError("CONFLICTO", 409, "La solicitud no puede enviarse en su estado actual.");
+    }
 
     const campos: { campo: string; error: string }[] = [];
     if (!s.empresaNombre) campos.push({ campo: "empresaNombre", error: "Campo obligatorio." });
@@ -309,8 +299,8 @@ export const mockApi = {
     if (!s.fechaFin) campos.push({ campo: "fechaFin", error: "Campo obligatorio." });
     if (!s.notaAceptacion) campos.push({ campo: "notaAceptacion", error: "Falta la nota de aceptación en PDF." });
     if (!s.consentimientoDatos) campos.push({ campo: "consentimientoDatos", error: "Debe aceptar el tratamiento de datos (RNF-03)." });
-    if (s.fechaInicio && s.fechaFin && !duracionOk(s.fechaInicio, s.fechaFin)) {
-      campos.push({ campo: "fechaFin", error: "La duración mínima es de 6 meses (RN-03)." });
+    if (s.fechaInicio && s.fechaFin && !cumpleDuracionMinima(s.fechaInicio, s.fechaFin)) {
+      campos.push({ campo: "fechaFin", error: `La duración mínima es de ${MESES_DURACION_MINIMA} meses (RN-03).` });
     }
     const asesor = DOCENTES.find((d) => d.id === s.asesorSugeridoId);
     if (asesor && s.supervisorCorreo && asesor.correo.toLowerCase() === s.supervisorCorreo.toLowerCase()) {
@@ -318,7 +308,7 @@ export const mockApi = {
     }
     if (campos.length) throw new ApiError("VALIDACION", 422, "La solicitud tiene datos inválidos.", campos);
 
-    s.estado = "ENVIADA";
+    s.estado = EstadoSolicitud.ENVIADA;
     s.version += 1;
     s.enviadaEn = new Date().toISOString();
     if (!s.numero) s.numero = "SOL-2026-" + String(1000 + store().solicitudes.length).padStart(4, "0");
@@ -332,7 +322,7 @@ export const mockApi = {
   async bandejaSolicitudes(): Promise<Solicitud[]> {
     await demora();
     return store().solicitudes
-      .filter((s) => s.estado === "ENVIADA")
+      .filter((s) => puedeEvaluar(s.estado))
       .sort((a, b) => (a.enviadaEn ?? "").localeCompare(b.enviadaEn ?? ""));
   },
   async evaluarSolicitud(id: string, input: EvaluacionInput): Promise<Solicitud> {
@@ -340,16 +330,16 @@ export const mockApi = {
     const s = store().solicitudes.find((x) => x.id === id);
     if (!s) throw new ApiError("NO_ENCONTRADO", 404, "Solicitud no encontrada.");
     // CU-02 E3: control de concurrencia optimista.
-    if (s.version !== input.version || s.estado !== "ENVIADA") {
+    if (s.version !== input.version || !puedeEvaluar(s.estado)) {
       throw new ApiError("CONFLICTO", 409, "Otro usuario ya decidió sobre esta solicitud. Recargue la página.");
     }
     const campos: { campo: string; error: string }[] = [];
     if (input.decision === "APROBAR") {
-      if (!(input.asignaturasAprobadas && input.indiceMinimo && input.documentacionCompleta)) {
-        campos.push({ campo: "verificacion", error: "Verificación RN-01 incompleta." });
-      }
+      if (!input.asignaturasAprobadas) campos.push({ campo: "asignaturasAprobadas", error: "Debe verificar las asignaturas aprobadas (Art. 41)." });
+      if (!input.indiceMinimo) campos.push({ campo: "indiceMinimo", error: "Debe verificar el indice minimo de 1.00 (Art. 41)." });
+      if (!input.documentacionCompleta) campos.push({ campo: "documentacionCompleta", error: "Debe verificar la documentacion completa." });
       if (!input.jefeDepartamento.trim() || !input.fechaAprobacionJefe) {
-        campos.push({ campo: "jefeDepartamento", error: "Falta el Jefe de Departamento y su fecha." });
+        campos.push({ campo: input.jefeDepartamento.trim() ? "fechaAprobacionJefe" : "jefeDepartamento", error: "Falta el Jefe de Departamento y su fecha." });
       }
       if (!input.documentoComisionId) {
         campos.push({ campo: "documentoComision", error: "Falta la recomendación de la Comisión (PDF)." });
@@ -359,13 +349,15 @@ export const mockApi = {
     }
     if (campos.length) throw new ApiError("VALIDACION", 422, "No se pudo registrar la decisión.", campos);
 
-    const mapa: Record<Decision, Solicitud["estado"]> = { APROBAR: "APROBADA", DEVOLVER: "DEVUELTA", RECHAZAR: "RECHAZADA" };
-    s.estado = mapa[input.decision];
+    const efecto = efectoDecision(input.decision);
+    if (!efecto) {
+      throw new ApiError("VALIDACION", 422, "Decision invalida.", [{ campo: "decision", error: "Decision invalida." }]);
+    }
+    s.estado = efecto.estado;
     s.version += 1;
     s.ultimaObservacion = input.observaciones || null;
     auditar("Vicedecanato FISC", "EVALUAR_" + input.decision, "solicitud");
-    notificar("Solicitud" + { APROBAR: "Aprobada", DEVOLVER: "Devuelta", RECHAZAR: "Rechazada" }[input.decision],
-      `Su solicitud ${s.numero} fue ${s.estado}. ${input.observaciones}`);
+    notificar(efecto.evento, `Su solicitud ${s.numero} fue ${s.estado}. ${input.observaciones}`);
     persistir();
     return { ...s };
   },
@@ -391,24 +383,24 @@ export const mockApi = {
     }
     if (!input.supervisorCorreo || !input.fechaInicio || !input.fechaFin) {
       campos.push({ campo: "supervisorCorreo", error: "Complete correo del supervisor y fechas." });
-    } else if (!duracionOk(input.fechaInicio, input.fechaFin)) {
-      campos.push({ campo: "fechaFin", error: "La duración mínima es de 6 meses (RN-03, E3)." });
+    } else if (!cumpleDuracionMinima(input.fechaInicio, input.fechaFin)) {
+      campos.push({ campo: "fechaFin", error: `La duración mínima es de ${MESES_DURACION_MINIMA} meses (RN-03, E3).` });
     }
     if (campos.length) throw new ApiError("VALIDACION", 422, "No se pudo formalizar la práctica.", campos);
 
     const token = uid() + uid();
     const practica: Practica = {
-      id: uid(), numeroSolicitud: s.numero ?? "", estado: input.fechaInicio > hoy() ? "POR_INICIAR" : "EN_CURSO",
+      id: uid(), numeroSolicitud: s.numero ?? "", estado: estadoInicialPractica(input.fechaInicio, hoy()),
       estudianteNombre: s.estudianteNombre, asesorNombre: asesor?.nombre ?? "—",
       supervisorCorreo: input.supervisorCorreo, supervisorVinculado: false,
       fechaInicio: input.fechaInicio, fechaFin: input.fechaFin, convenio: { id: uid(), nombreOriginal: "convenio_firmado.pdf", tamanoBytes: 310_000 },
-      periodos: periodos(input.fechaInicio, input.fechaFin),
-      invitacion: { id: uid(), correoDestino: input.supervisorCorreo, venceEn: new Date(Date.now() + 72 * 3600e3).toISOString(), estado: "PENDIENTE" },
+      periodos: generarPeriodos(input.fechaInicio, input.fechaFin),
+      invitacion: { id: uid(), correoDestino: input.supervisorCorreo, venceEn: venceInvitacion(new Date()).toISOString(), estado: "PENDIENTE" },
     };
     store().practicas.push(practica);
     store().tokens[token] = practica.id;
     auditar("Vicedecanato FISC", "FORMALIZAR_PRACTICA", "practica");
-    notificar("PracticaFormalizada", `Invitación para supervisar la práctica de ${s.estudianteNombre} (vence en 72 h).`);
+    notificar("PracticaFormalizada", `Invitación para supervisar la práctica de ${s.estudianteNombre} (vence en ${textoVencimientoInvitacion()}).`);
     persistir();
     return { ...practica };
   },
@@ -422,10 +414,10 @@ export const mockApi = {
     if (!p) throw new ApiError("NO_ENCONTRADO", 404, "Práctica no encontrada.");
     if (p.invitacion && p.invitacion.estado === "PENDIENTE") p.invitacion.estado = "REVOCADA";
     const token = uid() + uid();
-    p.invitacion = { id: uid(), correoDestino: p.supervisorCorreo, venceEn: new Date(Date.now() + 72 * 3600e3).toISOString(), estado: "PENDIENTE" };
+    p.invitacion = { id: uid(), correoDestino: p.supervisorCorreo, venceEn: venceInvitacion(new Date()).toISOString(), estado: "PENDIENTE" };
     store().tokens[token] = p.id;
     auditar("Vicedecanato FISC", "REENVIAR_INVITACION", "practica");
-    notificar("InvitacionReenviada", "Nueva invitación (vence en 72 h).");
+    notificar("InvitacionReenviada", `Nueva invitación (vence en ${textoVencimientoInvitacion()}).`);
     persistir();
     return { ...p.invitacion };
   },
@@ -486,7 +478,11 @@ function aplicar(input: SolicitudInput): Partial<Solicitud> {
 }
 
 function validarPdf(archivo: File): void {
-  if (archivo.size > MAX_BYTES) throw new ApiError("ARCHIVO_GRANDE", 413, `"${archivo.name}" supera 10 MB.`);
-  const esPdf = archivo.type === "application/pdf" || /\.pdf$/i.test(archivo.name);
-  if (!esPdf) throw new ApiError("TIPO_NO_PERMITIDO", 415, `"${archivo.name}" no es un PDF.`);
+  if (excedePdf(archivo.size)) {
+    throw new ApiError("ARCHIVO_GRANDE", 413, `"${archivo.name}" supera ${textoLimitePdf()}.`);
+  }
+  const porExtension = /\.pdf$/i.test(archivo.name);
+  if (mimePdfInvalido(archivo.type) || (!archivo.type && !porExtension)) {
+    throw new ApiError("TIPO_NO_PERMITIDO", 415, `"${archivo.name}" no es un PDF.`);
+  }
 }

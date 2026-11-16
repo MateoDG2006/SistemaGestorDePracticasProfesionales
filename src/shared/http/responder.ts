@@ -1,9 +1,8 @@
 import { z } from "zod";
 import { respuestaDeError } from "@/src/shared/errores/respuesta";
 import { ErrorPeticion, ErrorArchivoGrande } from "@/src/shared/errores/errores";
-import { MAX_BYTES } from "@/src/shared/pdf/validadorPdf";
+import { MAX_PDF_BYTES } from "@/src/shared/dominio/reglas";
 
-// Envuelve un handler y traduce cualquier excepcion al formato comun de error.
 export async function ejecutar(fn: () => Promise<Response>): Promise<Response> {
   try {
     return await fn();
@@ -12,7 +11,6 @@ export async function ejecutar(fn: () => Promise<Response>): Promise<Response> {
   }
 }
 
-// Lee y valida el cuerpo JSON con un esquema zod (400 con campos si falla).
 export async function leerJson<T>(req: Request, schema: z.ZodType<T>): Promise<T> {
   let data: unknown;
   try {
@@ -30,7 +28,6 @@ export async function leerJson<T>(req: Request, schema: z.ZodType<T>): Promise<T
   return r.data;
 }
 
-// Fecha "YYYY-MM-DD" -> PlainDate (rechaza formatos parciales e invalidos).
 export function leerFecha(valor: string): Temporal.PlainDate {
   try {
     return Temporal.PlainDate.from(valor);
@@ -39,10 +36,10 @@ export function leerFecha(valor: string): Temporal.PlainDate {
   }
 }
 
-// Guard temprano por Content-Length (RNF-09, 413) antes de leer el archivo.
+// Content-Length incluye el framing multipart, por eso el corte queda 1 MB sobre el limite del PDF.
 export function verificarTamano(req: Request): void {
   const len = Number(req.headers.get("content-length") ?? "0");
-  if (len > MAX_BYTES + 1_000_000) {
+  if (len > MAX_PDF_BYTES + 1_000_000) {
     throw new ErrorArchivoGrande();
   }
 }

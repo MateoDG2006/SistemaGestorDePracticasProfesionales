@@ -22,6 +22,8 @@ import type {
   SolicitudInput,
   Usuario,
 } from "./types";
+import { EstadoSolicitud } from "@/src/shared/dominio/enums";
+import { PARAM_SIN_FORMALIZAR } from "@/src/shared/dominio/reglas";
 
 export const API_MODE =
   (process.env.NEXT_PUBLIC_API_MODE as "real" | "mock" | undefined) ?? "mock";
@@ -102,6 +104,24 @@ async function pedir<T>(path: string, opc: Opciones = {}): Promise<T> {
   return data as T;
 }
 
+function cuerpoSolicitud(input: SolicitudInput) {
+  return {
+    empresa: input.empresaNombre.trim()
+      ? { nombre: input.empresaNombre.trim(), direccion: input.empresaDireccion.trim() || null }
+      : null,
+    supervisorNombre: input.supervisorNombre || null,
+    supervisorCargo: input.supervisorCargo || null,
+    supervisorCorreo: input.supervisorCorreo || null,
+    supervisorTelefono: input.supervisorTelefono || null,
+    objetivo: input.objetivo || null,
+    actividades: input.actividades || null,
+    fechaInicio: input.fechaInicio || null,
+    fechaFin: input.fechaFin || null,
+    asesorSugeridoId: input.asesorSugeridoId,
+    consentimientoDatos: input.consentimientoDatos,
+  };
+}
+
 // Puente al adaptador mock (solo en modo demo).
 async function mock() {
   const m = await import("./mock");
@@ -141,15 +161,19 @@ export async function listarDocentes(): Promise<Docente[]> {
 
 export async function crearSolicitud(input: SolicitudInput): Promise<Solicitud> {
   if (API_MODE === "mock") return (await mock()).crearSolicitud(input);
-  return pedir<Solicitud>("/solicitudes", { method: "POST", body: input });
+  return pedir<Solicitud>("/solicitudes", { method: "POST", body: cuerpoSolicitud(input) });
 }
 
 export async function actualizarSolicitud(
   id: string,
+  version: number,
   input: SolicitudInput,
 ): Promise<Solicitud> {
-  if (API_MODE === "mock") return (await mock()).actualizarSolicitud(id, input);
-  return pedir<Solicitud>(`/solicitudes/${id}`, { method: "PUT", body: input });
+  if (API_MODE === "mock") return (await mock()).actualizarSolicitud(id, version, input);
+  return pedir<Solicitud>(`/solicitudes/${id}`, {
+    method: "PUT",
+    body: { ...cuerpoSolicitud(input), version },
+  });
 }
 
 export async function misSolicitudes(): Promise<Solicitud[]> {
@@ -183,7 +207,8 @@ export async function enviarSolicitud(id: string): Promise<Solicitud> {
 
 export async function bandejaSolicitudes(): Promise<Solicitud[]> {
   if (API_MODE === "mock") return (await mock()).bandejaSolicitudes();
-  return pedir<Solicitud[]>("/solicitudes?estado=ENVIADA");
+  const r = await pedir<{ items: Solicitud[] }>(`/solicitudes?estado=${EstadoSolicitud.ENVIADA}`);
+  return r.items;
 }
 
 export async function evaluarSolicitud(
@@ -198,12 +223,19 @@ export async function evaluarSolicitud(
 
 export async function solicitudesAprobadas(): Promise<Solicitud[]> {
   if (API_MODE === "mock") return (await mock()).solicitudesAprobadas();
-  return pedir<Solicitud[]>("/solicitudes?estado=APROBADA&sinPractica=true");
+  return pedir<Solicitud[]>(`/solicitudes?estado=${EstadoSolicitud.APROBADA}&${PARAM_SIN_FORMALIZAR}=true`);
 }
 
-export async function formalizarPractica(input: PracticaInput): Promise<Practica> {
+export async function formalizarPractica(input: PracticaInput, convenio: File): Promise<Practica> {
   if (API_MODE === "mock") return (await mock()).formalizarPractica(input);
-  return pedir<Practica>("/practicas", { method: "POST", body: input });
+  const form = new FormData();
+  form.append("solicitudId", input.solicitudId);
+  form.append("asesorId", input.asesorId);
+  form.append("supervisorCorreo", input.supervisorCorreo);
+  form.append("fechaInicio", input.fechaInicio);
+  form.append("fechaFin", input.fechaFin);
+  form.append("convenio", convenio);
+  return pedir<Practica>("/practicas", { method: "POST", form });
 }
 
 export async function listarPracticas(): Promise<Practica[]> {

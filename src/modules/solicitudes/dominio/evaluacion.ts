@@ -1,7 +1,6 @@
 import { Decision } from "@/src/shared/dominio/enums";
 import { ErrorValidacion, type CampoError } from "@/src/shared/errores/errores";
 
-// Datos de la decision del Vicedecanato (CU-02).
 export interface DatosEvaluacion {
   decision: string;
   asignaturasAprobadas: boolean;
@@ -13,7 +12,6 @@ export interface DatosEvaluacion {
   observaciones: string | null;
 }
 
-// Valida la decision segun RN-01 (aprobar) y CU-02 E2 (texto obligatorio).
 export function validarEvaluacion(d: DatosEvaluacion): void {
   const campos: CampoError[] = [];
 

@@ -1,6 +1,8 @@
 // Errores de dominio/aplicacion con su mapeo a codigos HTTP y al formato
 // comun de error de la API (Fase 2, seccion 6.1).
 
+import { textoLimitePdf } from "@/src/shared/dominio/reglas";
+
 export interface CampoError {
   campo: string;
   error: string;
@@ -20,35 +22,30 @@ export class AppError extends Error {
   }
 }
 
-// 422 - regla de negocio incumplida o validacion de dominio
 export class ErrorValidacion extends AppError {
   constructor(mensaje: string, campos?: CampoError[]) {
     super("VALIDACION", 422, mensaje, campos);
   }
 }
 
-// 400 - peticion mal formada
 export class ErrorPeticion extends AppError {
   constructor(mensaje: string, campos?: CampoError[]) {
     super("PETICION_INVALIDA", 400, mensaje, campos);
   }
 }
 
-// 401 - sin sesion
 export class ErrorNoAutenticado extends AppError {
   constructor(mensaje = "Debe iniciar sesion.") {
     super("NO_AUTENTICADO", 401, mensaje);
   }
 }
 
-// 403 - sin permiso sobre el recurso (RNF-01)
 export class ErrorNoAutorizado extends AppError {
   constructor(mensaje = "No tiene permiso sobre este recurso.") {
     super("NO_AUTORIZADO", 403, mensaje);
   }
 }
 
-// 404
 export class ErrorNoEncontrado extends AppError {
   constructor(mensaje = "Recurso no encontrado.") {
     super("NO_ENCONTRADO", 404, mensaje);
@@ -69,14 +66,12 @@ export class ErrorVencido extends AppError {
   }
 }
 
-// 413 - archivo demasiado grande (RNF-09)
 export class ErrorArchivoGrande extends AppError {
-  constructor(mensaje = "El archivo supera el limite de 10 MB.") {
+  constructor(mensaje = `El archivo supera el limite de ${textoLimitePdf()}.`) {
     super("ARCHIVO_GRANDE", 413, mensaje);
   }
 }
 
-// 415 - tipo de archivo no permitido (RNF-09)
 export class ErrorTipoArchivo extends AppError {
   constructor(mensaje = "Solo se aceptan archivos PDF.") {
     super("TIPO_NO_PERMITIDO", 415, mensaje);

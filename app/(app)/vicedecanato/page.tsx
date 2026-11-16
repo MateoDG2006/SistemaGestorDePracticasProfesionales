@@ -19,6 +19,7 @@ import {
 } from "../../_components/ui";
 import { BarChart } from "../../_components/charts";
 import { LuCalendar } from "react-icons/lu";
+import { MESES_DURACION_MINIMA } from "@/src/shared/dominio/reglas";
 
 export default function VicedecanatoInicio() {
   const [bandeja, setBandeja] = useState<Solicitud[] | null>(null);
@@ -63,7 +64,7 @@ export default function VicedecanatoInicio() {
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard etiqueta="Pendientes" valor={bandeja?.length ?? "—"} pie="por evaluar" />
         <StatCard etiqueta="Prácticas formalizadas" valor={practicas.length} pie="en seguimiento" />
-        <StatCard etiqueta="Duración mínima" valor="6 meses" pie="RN-03" />
+        <StatCard etiqueta="Duración mínima" valor={`${MESES_DURACION_MINIMA} meses`} pie="RN-03" />
       </div>
 
       <Card className="p-5">

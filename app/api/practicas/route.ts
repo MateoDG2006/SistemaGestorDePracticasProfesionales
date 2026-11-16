@@ -20,6 +20,7 @@ export async function POST(req: Request) {
     const convenio = form.get("convenio");
     if (!(convenio instanceof File)) throw new ErrorPeticion("Falta el convenio (PDF).");
 
+    const supervisorCorreo = form.get("supervisorCorreo") ? String(form.get("supervisorCorreo")) : null;
     const asesorId = form.get("asesorId") ? String(form.get("asesorId")) : null;
     const fi = form.get("fechaInicio") ? leerFecha(String(form.get("fechaInicio"))) : null;
     const ff = form.get("fechaFin") ? leerFecha(String(form.get("fechaFin"))) : null;
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
     const r = await formalizarPractica(u.id, {
       solicitudId,
       asesorId,
+      supervisorCorreo,
       fechaInicio: fi,
       fechaFin: ff,
       convenio: { nombreOriginal: convenio.name, buffer, mime: convenio.type },

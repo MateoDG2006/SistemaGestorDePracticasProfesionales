@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { aceptarInvitacion, ApiError, invitacionesSupervisor } from "../../_lib/api";
 import type { Invitacion } from "../../_lib/types";
 import { fechaHora, horasRestantes } from "../../_lib/format";
+import { textoVencimientoInvitacion } from "@/src/shared/dominio/reglas";
 import {
   Button,
   Card,
@@ -52,7 +53,7 @@ export default function Supervisor() {
       {aviso && <Mensaje tipo={aviso.tipo}>{aviso.texto}</Mensaje>}
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <HighlightCard titulo="Invitaciones pendientes" pie="Cada invitación vence a las 72 horas">
+        <HighlightCard titulo="Invitaciones pendientes" pie={`Cada invitación vence a las ${textoVencimientoInvitacion()}`}>
           <p className="text-4xl font-semibold">{lista === null ? "—" : pendientes}</p>
           <p className="mt-1 text-sm text-white/60">por aceptar</p>
         </HighlightCard>

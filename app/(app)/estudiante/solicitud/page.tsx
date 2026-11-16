@@ -21,6 +21,8 @@ import {
   Spinner,
 } from "../../../_components/ui";
 import { ArchivoPdf, Campo, Checkbox, Input, Select, TextArea } from "../../../_components/form";
+import { impideCrearSolicitud, solicitudEditable, textoDuracionMinima, textoLimitePdf } from "@/src/shared/dominio/reglas";
+import { TipoDocumento } from "@/src/shared/dominio/enums";
 
 type Errores = Record<string, string>;
 const vacio: SolicitudInput = {
@@ -35,6 +37,7 @@ export default function PaginaSolicitud() {
   const [cargando, setCargando] = useState(true);
   const [docentes, setDocentes] = useState<Docente[]>([]);
   const [id, setId] = useState<string | null>(null);
+  const [version, setVersion] = useState(0);
   const [bloqueada, setBloqueada] = useState<Solicitud | null>(null);
   const [f, setF] = useState<SolicitudInput>(vacio);
   const [notaActual, setNotaActual] = useState<string | null>(null);
@@ -46,10 +49,11 @@ export default function PaginaSolicitud() {
   useEffect(() => {
     Promise.all([listarDocentes(), misSolicitudes()]).then(([docs, mias]) => {
       setDocentes(docs);
-      const editable = mias.find((s) => ["BORRADOR", "DEVUELTA"].includes(s.estado));
-      const enTramite = mias.find((s) => ["ENVIADA", "APROBADA"].includes(s.estado));
+      const editable = mias.find((s) => solicitudEditable(s.estado));
+      const enTramite = mias.find((s) => impideCrearSolicitud(s.estado));
       if (editable) {
         setId(editable.id);
+        setVersion(editable.version);
         setNotaActual(editable.notaAceptacion?.nombreOriginal ?? null);
         setF({
           empresaNombre: editable.empresaNombre, empresaDireccion: editable.empresaDireccion,
@@ -88,13 +92,15 @@ export default function PaginaSolicitud() {
         const creada = await crearSolicitud(f);
         solId = creada.id;
         setId(creada.id);
+        setVersion(creada.version);
       } else {
-        await actualizarSolicitud(solId, f);
+        const actualizada = await actualizarSolicitud(solId, version, f);
+        setVersion(actualizada.version);
       }
       // 2) Subir el PDF si se seleccionó uno nuevo (puede lanzar 413/415).
       if (archivo) {
         try {
-          const ref = await subirDocumentoSolicitud(solId, "NOTA_ACEPTACION", archivo);
+          const ref = await subirDocumentoSolicitud(solId, TipoDocumento.NOTA_ACEPTACION, archivo);
           setNotaActual(ref.nombreOriginal);
           setArchivo(null);
         } catch (e) {
@@ -185,14 +191,14 @@ export default function PaginaSolicitud() {
               <Campo etiqueta="Nombre" error={errores.supervisorNombre}>
                 <Input value={f.supervisorNombre} onChange={(v) => set("supervisorNombre", v)} error={errores.supervisorNombre} />
               </Campo>
-              <Campo etiqueta="Cargo">
-                <Input value={f.supervisorCargo} onChange={(v) => set("supervisorCargo", v)} />
+              <Campo etiqueta="Cargo" error={errores.supervisorCargo}>
+                <Input value={f.supervisorCargo} onChange={(v) => set("supervisorCargo", v)} error={errores.supervisorCargo} />
               </Campo>
               <Campo etiqueta="Correo" error={errores.supervisorCorreo}>
                 <Input value={f.supervisorCorreo} onChange={(v) => set("supervisorCorreo", v)} type="email" error={errores.supervisorCorreo} />
               </Campo>
-              <Campo etiqueta="Teléfono">
-                <Input value={f.supervisorTelefono} onChange={(v) => set("supervisorTelefono", v)} />
+              <Campo etiqueta="Teléfono" error={errores.supervisorTelefono}>
+                <Input value={f.supervisorTelefono} onChange={(v) => set("supervisorTelefono", v)} error={errores.supervisorTelefono} />
               </Campo>
             </div>
           </Seccion>
@@ -210,7 +216,7 @@ export default function PaginaSolicitud() {
                 <Campo etiqueta="Fecha de inicio" error={errores.fechaInicio}>
                   <Input value={f.fechaInicio} onChange={(v) => set("fechaInicio", v)} type="date" error={errores.fechaInicio} />
                 </Campo>
-                <Campo etiqueta="Fecha de fin" error={errores.fechaFin} hint="Duración mínima: 6 meses (RN-03).">
+                <Campo etiqueta="Fecha de fin" error={errores.fechaFin} hint={textoDuracionMinima()}>
                   <Input value={f.fechaFin} onChange={(v) => set("fechaFin", v)} type="date" error={errores.fechaFin} />
                 </Campo>
               </div>
@@ -226,7 +232,7 @@ export default function PaginaSolicitud() {
 
           {/* Documentos */}
           <Seccion titulo="Documentos">
-            <Campo etiqueta="Nota de aceptación (PDF ≤ 10 MB)" error={errores.notaAceptacion}>
+            <Campo etiqueta={`Nota de aceptación (PDF ≤ ${textoLimitePdf()})`} error={errores.notaAceptacion}>
               <ArchivoPdf onSelect={setArchivo} actual={notaActual} error={errores.notaAceptacion} />
             </Campo>
           </Seccion>

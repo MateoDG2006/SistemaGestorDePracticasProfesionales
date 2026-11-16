@@ -1,6 +1,6 @@
 import { prisma } from "@/src/shared/db/prisma";
-import { Rol, EstadoSolicitud, TipoDocumento } from "@/src/shared/dominio/enums";
-import { puedeEditarBorrador } from "../dominio/estados";
+import { Rol, TipoDocumento } from "@/src/shared/dominio/enums";
+import { puedeEvaluar, solicitudEditable } from "@/src/shared/dominio/reglas";
 import { validarPdf } from "@/src/shared/pdf/validadorPdf";
 import { guardarArchivo } from "@/src/shared/pdf/almacenArchivos";
 import { registrarAuditoria } from "@/src/modules/auditoria/auditoriaApi";
@@ -27,7 +27,7 @@ export async function cargarDocumento(actor: UsuarioSesion, solicitudId: string,
   // Autorizacion por rol y recurso (RNF-01).
   if (actor.rol === Rol.ESTUDIANTE) {
     if (sol.estudianteId !== actor.id) throw new ErrorNoAutorizado();
-    if (!puedeEditarBorrador(sol.estado as EstadoSolicitud)) {
+    if (!solicitudEditable(sol.estado)) {
       throw new ErrorConflicto("La solicitud no admite cargar documentos en su estado actual.");
     }
     if (archivo.tipo !== TipoDocumento.NOTA_ACEPTACION && archivo.tipo !== TipoDocumento.OTRO) {
@@ -37,7 +37,7 @@ export async function cargarDocumento(actor: UsuarioSesion, solicitudId: string,
     if (archivo.tipo !== TipoDocumento.RECOMENDACION_COMISION) {
       throw new ErrorValidacion("El Vicedecanato solo adjunta la recomendacion de la Comision.");
     }
-    if (sol.estado !== EstadoSolicitud.ENVIADA) {
+    if (!puedeEvaluar(sol.estado)) {
       throw new ErrorConflicto("Solo se adjunta la recomendacion a una solicitud enviada.");
     }
   } else {

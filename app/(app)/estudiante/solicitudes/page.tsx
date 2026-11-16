@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { misSolicitudes } from "../../../_lib/api";
 import type { Solicitud } from "../../../_lib/types";
 import { fecha } from "../../../_lib/format";
+import { solicitudEditable } from "@/src/shared/dominio/reglas";
 import {
   Button,
   Card,
@@ -56,7 +57,7 @@ function Contenido() {
                 <Celda><ChipSolicitud estado={s.estado} /></Celda>
                 <Celda className="max-w-xs text-ink-soft">{s.ultimaObservacion || "—"}</Celda>
                 <Celda>
-                  {["BORRADOR", "DEVUELTA"].includes(s.estado) && (
+                  {solicitudEditable(s.estado) && (
                     <Button variante="secundario" tamano="sm" href="/estudiante/solicitud">Editar</Button>
                   )}
                 </Celda>
