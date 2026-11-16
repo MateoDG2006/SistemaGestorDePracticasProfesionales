@@ -10,6 +10,7 @@ import { Avatar as UiAvatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button as UiButton, buttonVariants } from "@/components/ui/button";
 import { Card as UiCard } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -399,5 +400,91 @@ export function Spinner({ className = "" }: { className?: string }) {
       role="status"
       aria-label="Cargando"
     />
+  );
+}
+
+/* ---------------- Esqueletos de carga ---------------- */
+
+export function Esqueleto({
+  className = "",
+}: {
+  className?: string;
+}) {
+  return <Skeleton className={cn("bg-track/80", className)} />;
+}
+
+/** Bloque genérico: título + tarjetas + tabla, para pantallas al iniciar. */
+export function EsqueletoPagina({
+  filas = 4,
+  columnas = 4,
+}: {
+  filas?: number;
+  columnas?: number;
+}) {
+  return (
+    <div className="flex flex-col gap-4" aria-busy="true" aria-label="Cargando contenido">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <Esqueleto className="h-9 w-56" />
+        <Esqueleto className="h-10 w-36 rounded-full" />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Esqueleto className="h-40 rounded-[var(--radius-card)]" />
+        <Esqueleto className="h-40 rounded-[var(--radius-card)] lg:col-span-2" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Esqueleto className="h-24 rounded-[var(--radius-card)]" />
+        <Esqueleto className="h-24 rounded-[var(--radius-card)]" />
+        <Esqueleto className="h-24 rounded-[var(--radius-card)]" />
+      </div>
+      <Card className="p-5">
+        <Esqueleto className="mb-4 h-5 w-40" />
+        <div className="flex flex-col gap-3">
+          {Array.from({ length: filas }).map((_, i) => (
+            <div key={i} className="grid gap-3" style={{ gridTemplateColumns: `repeat(${columnas}, minmax(0, 1fr))` }}>
+              {Array.from({ length: columnas }).map((__, j) => (
+                <Esqueleto key={j} className="h-4 w-full" />
+              ))}
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/** Esqueleto compacto para tablas / listados dentro de una Card. */
+export function EsqueletoTabla({ filas = 5 }: { filas?: number }) {
+  return (
+    <div className="flex flex-col gap-3 py-2" aria-busy="true" aria-label="Cargando listado">
+      {Array.from({ length: filas }).map((_, i) => (
+        <Esqueleto key={i} className="h-10 w-full rounded-lg" />
+      ))}
+    </div>
+  );
+}
+
+/** Esqueleto de formulario (solicitud, evaluación, etc.). */
+export function EsqueletoFormulario() {
+  return (
+    <div className="flex flex-col gap-4" aria-busy="true" aria-label="Cargando formulario">
+      <Esqueleto className="h-9 w-52" />
+      <Card className="p-6">
+        <div className="flex flex-col gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex flex-col gap-3">
+              <Esqueleto className="h-3 w-28" />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Esqueleto className="h-10 w-full rounded-xl" />
+                <Esqueleto className="h-10 w-full rounded-xl" />
+              </div>
+            </div>
+          ))}
+          <div className="flex justify-end gap-2">
+            <Esqueleto className="h-10 w-28 rounded-full" />
+            <Esqueleto className="h-10 w-36 rounded-full" />
+          </div>
+        </div>
+      </Card>
+    </div>
   );
 }

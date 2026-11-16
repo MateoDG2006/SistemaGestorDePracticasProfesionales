@@ -12,16 +12,17 @@ import {
   Celda,
   ChipSolicitud,
   EmptyState,
+  EsqueletoPagina,
+  EsqueletoTabla,
   Fila,
   Mensaje,
   PageHeader,
-  Spinner,
   Tabla,
 } from "../../../_components/ui";
 
 export default function Pagina() {
   return (
-    <Suspense fallback={<div className="grid place-items-center py-24"><Spinner /></div>}>
+    <Suspense fallback={<EsqueletoPagina filas={5} columnas={5} />}>
       <Contenido />
     </Suspense>
   );
@@ -46,7 +47,7 @@ function Contenido() {
 
       <Card className="p-5">
         {lista === null ? (
-          <div className="grid place-items-center py-16"><Spinner /></div>
+          <EsqueletoTabla filas={5} />
         ) : lista.length ? (
           <Tabla columnas={["N.º", "Empresa", "Periodo", "Estado", "Observaciones", ""]}>
             {lista.map((s) => (

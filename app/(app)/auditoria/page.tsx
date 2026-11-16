@@ -8,10 +8,10 @@ import {
   Card,
   Celda,
   EmptyState,
+  EsqueletoTabla,
   Fila,
   PageHeader,
   SectionTitle,
-  Spinner,
   Tabla,
 } from "../../_components/ui";
 
@@ -32,7 +32,7 @@ export default function PaginaAuditoria() {
         <SectionTitle titulo="registro_auditoria" subtitulo="Acciones registradas en la misma transacción (RNF-04)" />
         <div className="mt-4">
           {aud === null ? (
-            <div className="grid place-items-center py-10"><Spinner /></div>
+            <EsqueletoTabla />
           ) : aud.length ? (
             <Tabla columnas={["#", "Usuario", "Acción", "Entidad", "Fecha"]}>
               {aud.map((a) => (
@@ -55,7 +55,7 @@ export default function PaginaAuditoria() {
         <SectionTitle titulo="notificacion / mensaje_outbox" subtitulo="Avisos del trámite y estado de envío (RF-09, RNF-05)" />
         <div className="mt-4">
           {notis === null ? (
-            <div className="grid place-items-center py-10"><Spinner /></div>
+            <EsqueletoTabla />
           ) : notis.length ? (
             <Tabla columnas={["Evento", "Mensaje", "Fecha", "Outbox"]}>
               {notis.map((n) => (

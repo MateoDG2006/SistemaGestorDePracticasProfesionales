@@ -16,6 +16,7 @@ import {
   Button,
   Card,
   ChipSolicitud,
+  EsqueletoFormulario,
   Mensaje,
   PageHeader,
   SectionTitle,
@@ -117,7 +118,7 @@ export default function Evaluar() {
     );
   }
   if (!sol) {
-    return <div className="grid place-items-center py-24"><Spinner /></div>;
+    return <EsqueletoFormulario />;
   }
 
   const asesor = docentes.find((d) => d.id === sol.asesorSugeridoId);

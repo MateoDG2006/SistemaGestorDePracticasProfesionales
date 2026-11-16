@@ -32,3 +32,13 @@ export function tamano(bytes: number): string {
 export function horasRestantes(iso: string): number {
   return Math.max(0, Math.round((Date.parse(iso) - Date.now()) / 3600e3));
 }
+
+/** Primer nombre útil para saludos (omite Dr., Dra., Lic., Ing., …). */
+export function primerNombre(nombre: string | null | undefined): string {
+  if (!nombre) return "";
+  const partes = nombre.split(/\s+/).filter(Boolean);
+  if (partes.length >= 2 && /^(dr|dra|lic|ing|sr|sra)\.?$/i.test(partes[0])) {
+    return partes[1];
+  }
+  return partes[0] ?? "";
+}

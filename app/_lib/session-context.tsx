@@ -42,9 +42,15 @@ export function SesionProvider({
   }, [refrescar]);
 
   const salir = useCallback(async () => {
-    await apiCerrar();
-    setUsuario(null);
-    router.replace("/ingresar");
+    // Navegar de inmediato: si primero ponemos usuario=null, el shell muestra
+    // esqueleto y parece que el cierre de sesión se quedó "cargando".
+    try {
+      await apiCerrar();
+    } finally {
+      setCargando(false);
+      setUsuario(null);
+      router.replace("/ingresar");
+    }
   }, [router]);
 
   return (

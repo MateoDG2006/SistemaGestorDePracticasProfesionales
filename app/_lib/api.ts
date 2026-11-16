@@ -243,6 +243,23 @@ export async function listarPracticas(): Promise<Practica[]> {
   return pedir<Practica[]>("/practicas");
 }
 
+export interface SugeridaAsesor {
+  id: string;
+  numero: string | null;
+  estado: string;
+  estudianteNombre: string;
+  estudianteCorreo: string;
+  empresaNombre: string;
+  fechaInicio: string | null;
+  fechaFin: string | null;
+  formalizada: boolean;
+}
+
+export async function listarSugeridasAsesor(): Promise<SugeridaAsesor[]> {
+  if (API_MODE === "mock") return (await mock()).listarSugeridasAsesor();
+  return pedir<SugeridaAsesor[]>("/solicitudes/sugeridas-mias");
+}
+
 export async function reenviarInvitacion(practicaId: string): Promise<Invitacion> {
   if (API_MODE === "mock") return (await mock()).reenviarInvitacion(practicaId);
   return pedir<Invitacion>(`/practicas/${practicaId}/invitaciones/reenvio`, {

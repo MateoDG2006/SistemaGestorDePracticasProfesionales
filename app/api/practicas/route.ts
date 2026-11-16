@@ -5,6 +5,15 @@ import { requerirUsuario } from "@/src/shared/auth/sesion";
 import { Rol } from "@/src/shared/dominio/enums";
 import { ErrorPeticion } from "@/src/shared/errores/errores";
 import { formalizarPractica } from "@/src/modules/practicas/aplicacion/formalizarPractica";
+import { consultarPracticas } from "@/src/modules/practicas/aplicacion/consultarPracticas";
+
+// GET /api/practicas: Vicedecanato ve todas; Asesor solo las suyas.
+export async function GET() {
+  return ejecutar(async () => {
+    const u = await requerirUsuario(Rol.VICEDECANATO, Rol.ASESOR);
+    return ok(await consultarPracticas(u));
+  });
+}
 
 // POST /api/practicas (CU-03): formaliza una solicitud aprobada (multipart).
 // Campos: convenio (File PDF), solicitudId, asesorId?, fechaInicio?, fechaFin?.

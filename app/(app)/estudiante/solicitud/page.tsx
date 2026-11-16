@@ -16,6 +16,7 @@ import type { Docente, Solicitud, SolicitudInput } from "../../../_lib/types";
 import {
   Button,
   Card,
+  EsqueletoFormulario,
   Mensaje,
   PageHeader,
   Spinner,
@@ -49,8 +50,9 @@ export default function PaginaSolicitud() {
   useEffect(() => {
     Promise.all([listarDocentes(), misSolicitudes()]).then(([docs, mias]) => {
       setDocentes(docs);
-      const editable = mias.find((s) => solicitudEditable(s.estado));
-      const enTramite = mias.find((s) => impideCrearSolicitud(s.estado));
+      const lista = Array.isArray(mias) ? mias : [];
+      // BORRADOR/DEVUELTA se editan; no bloquearlas como "ya hay una activa".
+      const editable = lista.find((s) => solicitudEditable(s.estado));
       if (editable) {
         setId(editable.id);
         setVersion(editable.version);
@@ -66,8 +68,9 @@ export default function PaginaSolicitud() {
         if (editable.estado === "DEVUELTA" && editable.ultimaObservacion) {
           setAviso({ tipo: "error", texto: `Devuelta por el Vicedecanato: ${editable.ultimaObservacion}` });
         }
-      } else if (enTramite) {
-        setBloqueada(enTramite);
+      } else {
+        const enTramite = lista.find((s) => impideCrearSolicitud(s.estado));
+        if (enTramite) setBloqueada(enTramite);
       }
       setCargando(false);
     });
@@ -86,16 +89,27 @@ export default function PaginaSolicitud() {
     setAviso(null);
     setGuardando(enviar ? "envio" : "borrador");
     try {
-      // 1) Crear o actualizar la solicitud.
+      // 1) Crear o actualizar. Si hay BORRADOR/DEVUELTA, siempre actualizar
+      // (evita el 409 RN-02 al intentar crear otra "activa").
       let solId = id;
+      let ver = version;
       if (!solId) {
+        const mias = await misSolicitudes().catch(() => [] as Solicitud[]);
+        const editable = mias.find((s) => solicitudEditable(s.estado));
+        if (editable) {
+          solId = editable.id;
+          ver = editable.version;
+          setId(editable.id);
+        }
+      }
+      if (solId) {
+        const actualizada = await actualizarSolicitud(solId, ver, f);
+        setVersion(actualizada.version);
+      } else {
         const creada = await crearSolicitud(f);
         solId = creada.id;
         setId(creada.id);
         setVersion(creada.version);
-      } else {
-        const actualizada = await actualizarSolicitud(solId, version, f);
-        setVersion(actualizada.version);
       }
       // 2) Subir el PDF si se seleccionó uno nuevo (puede lanzar 413/415).
       if (archivo) {
@@ -138,11 +152,7 @@ export default function PaginaSolicitud() {
   }
 
   if (cargando) {
-    return (
-      <div className="grid place-items-center py-24">
-        <Spinner />
-      </div>
-    );
+    return <EsqueletoFormulario />;
   }
 
   if (bloqueada) {
@@ -152,6 +162,9 @@ export default function PaginaSolicitud() {
         <Mensaje tipo="error">
           Ya tiene una solicitud en trámite (<b>{bloqueada.numero}</b> – {bloqueada.estado}). No puede
           crear otra mientras esta siga en curso (RN-02).
+          {bloqueada.estado === "ENVIADA"
+            ? " Cuando el Vicedecanato la devuelva, podrá corregirla desde Mis solicitudes."
+            : ""}
         </Mensaje>
         <Button variante="secundario" href="/estudiante/solicitudes">Ver mis solicitudes</Button>
       </>

@@ -13,6 +13,8 @@ import {
   ChipInvitacion,
   ChipPractica,
   EmptyState,
+  EsqueletoPagina,
+  EsqueletoTabla,
   Fila,
   Mensaje,
   PageHeader,
@@ -23,7 +25,7 @@ import { RefreshCw } from "lucide-react";
 
 export default function Pagina() {
   return (
-    <Suspense fallback={<div className="grid place-items-center py-24"><Spinner /></div>}>
+    <Suspense fallback={<EsqueletoPagina />}>
       <Contenido />
     </Suspense>
   );
@@ -60,7 +62,7 @@ function Contenido() {
       {aviso && <Mensaje tipo="ok">{aviso}</Mensaje>}
 
       {lista === null ? (
-        <div className="grid place-items-center py-24"><Spinner /></div>
+        <EsqueletoTabla filas={4} />
       ) : lista.length ? (
         <div className="flex flex-col gap-4">
           {lista.map((p) => (

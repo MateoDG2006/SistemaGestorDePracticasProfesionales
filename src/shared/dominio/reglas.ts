@@ -66,7 +66,7 @@ export const RUTA_INICIO: Record<Rol, string> = {
   ESTUDIANTE: "/estudiante",
   VICEDECANATO: "/vicedecanato",
   SUPERVISOR: "/supervisor",
-  ASESOR: "/vicedecanato",
+  ASESOR: "/asesor",
 };
 
 export function textoDuracionMinima(): string {

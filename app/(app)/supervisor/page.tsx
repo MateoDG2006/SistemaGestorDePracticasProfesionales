@@ -11,6 +11,7 @@ import {
   Celda,
   ChipInvitacion,
   EmptyState,
+  EsqueletoTabla,
   Fila,
   HighlightCard,
   Mensaje,
@@ -69,7 +70,7 @@ export default function Supervisor() {
         <SectionTitle titulo="Invitaciones recibidas" />
         <div className="mt-4">
           {lista === null ? (
-            <div className="grid place-items-center py-12"><Spinner /></div>
+            <EsqueletoTabla />
           ) : lista.length ? (
             <Tabla columnas={["Correo", "Vence", "Estado", ""]}>
               {lista.map((i) => (

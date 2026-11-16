@@ -68,10 +68,36 @@ function camposSolicitud(input: SolicitudInput, empresaId: string | null) {
   };
 }
 
-// CU-01: crea una solicitud en estado BORRADOR (RN-02 via indice unico parcial).
+// CU-01: crea una solicitud en estado BORRADOR (RN-02: una sola en trámite).
 export async function crearBorrador(estudianteId: string, input: SolicitudInput) {
   try {
     return await prisma.$transaction(async (tx) => {
+      // Soft-check RN-02: BORRADOR/DEVUELTA se editan; ENVIADA/APROBADA bloquean.
+      const existente = await tx.solicitud.findFirst({
+        where: {
+          estudianteId,
+          estado: {
+            in: [
+              EstadoSolicitud.BORRADOR,
+              EstadoSolicitud.DEVUELTA,
+              EstadoSolicitud.ENVIADA,
+              EstadoSolicitud.APROBADA,
+            ],
+          },
+        },
+        orderBy: { creadaEn: "desc" },
+      });
+      if (existente) {
+        if (solicitudEditable(existente.estado)) {
+          throw new ErrorConflicto(
+            `Ya tiene una solicitud editable (${existente.numero ?? "borrador"} – ${existente.estado}). Ábrala para corregirla; no cree otra (RN-02).`,
+          );
+        }
+        throw new ErrorConflicto(
+          `Ya tiene una solicitud en trámite (${existente.numero ?? "borrador"} – ${existente.estado}). RN-02.`,
+        );
+      }
+
       const empresaId = await resolverEmpresaId(tx, input.empresa);
       const sol = await tx.solicitud.create({
         data: {

@@ -22,12 +22,19 @@ export default function Ingresar() {
   const [verificando, setVerificando] = useState(true);
 
   useEffect(() => {
+    let vivo = true;
     sesionActual()
       .then((u) => {
+        if (!vivo) return;
         if (u) router.replace(RUTA_INICIO[u.rol] ?? "/");
         else setVerificando(false);
       })
-      .catch(() => setVerificando(false));
+      .catch(() => {
+        if (vivo) setVerificando(false);
+      });
+    return () => {
+      vivo = false;
+    };
   }, [router]);
 
   async function entrar(e: React.FormEvent) {
@@ -39,6 +46,7 @@ export default function Ingresar() {
       router.replace(RUTA_INICIO[u.rol] ?? "/");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo iniciar sesión.");
+    } finally {
       setEnviando(false);
     }
   }

@@ -15,7 +15,6 @@ import {
   MESES_DURACION_MINIMA,
   mimePdfInvalido,
   puedeEvaluar,
-  solicitudActiva,
   solicitudEditable,
   textoLimitePdf,
   textoVencimientoInvitacion,
@@ -52,6 +51,8 @@ const DOCENTES: Docente[] = [
 const USUARIOS: UsuarioMock[] = [
   { id: "est1", nombre: "Ana Pérez", correo: "estudiante@utp.ac.pa", rol: "ESTUDIANTE", password: "demo" },
   { id: "vice1", nombre: "Vicedecanato FISC", correo: "vicedecanato@utp.ac.pa", rol: "VICEDECANATO", password: "demo" },
+  { id: "a1", nombre: "Dr. Carlos Mora", correo: "asesor1@utp.ac.pa", rol: "ASESOR", password: "demo" },
+  { id: "a2", nombre: "Dra. Luisa Rivas", correo: "asesor2@utp.ac.pa", rol: "ASESOR", password: "demo" },
   { id: "sup1", nombre: "Ing. Roberto Sánchez", correo: "supervisor@empresa.com", rol: "SUPERVISOR", password: "demo" },
 ];
 
@@ -246,10 +247,17 @@ export const mockApi = {
   },
   async crearSolicitud(input: SolicitudInput): Promise<Solicitud> {
     await demora();
-    // RN-02: una sola solicitud en trámite por estudiante.
-    const enTramite = store().solicitudes.find(
-      (s) => s.estudianteCorreo === "estudiante@utp.ac.pa" && solicitudActiva(s.estado),
-    );
+    // RN-02: una sola en trámite. BORRADOR/DEVUELTA se editan; no crear otra.
+    const mias = store().solicitudes.filter((s) => s.estudianteCorreo === "estudiante@utp.ac.pa");
+    const editable = mias.find((s) => solicitudEditable(s.estado));
+    if (editable) {
+      throw new ApiError(
+        "CONFLICTO",
+        409,
+        `Ya tiene una solicitud editable (${editable.numero ?? "borrador"} – ${editable.estado}). Ábrala para corregirla; no cree otra (RN-02).`,
+      );
+    }
+    const enTramite = mias.find((s) => s.estado === "ENVIADA" || s.estado === "APROBADA");
     if (enTramite) {
       throw new ApiError("CONFLICTO", 409, `Ya tiene una solicitud en trámite (${enTramite.numero ?? "borrador"} – ${enTramite.estado}). RN-02.`);
     }
@@ -406,7 +414,31 @@ export const mockApi = {
   },
   async listarPracticas(): Promise<Practica[]> {
     await demora();
-    return store().practicas.map((p) => ({ ...p }));
+    const u = usuarioGuardado();
+    const todas = store().practicas.map((p) => ({ ...p }));
+    if (u?.rol === "ASESOR") {
+      return todas.filter((p) => p.asesorNombre === u.nombre);
+    }
+    return todas;
+  },
+  async listarSugeridasAsesor() {
+    await demora();
+    const u = usuarioGuardado();
+    const docente = DOCENTES.find((d) => d.correo === u?.correo);
+    if (!docente) return [];
+    return store()
+      .solicitudes.filter((s) => s.asesorSugeridoId === docente.id)
+      .map((s) => ({
+        id: s.id,
+        numero: s.numero,
+        estado: s.estado,
+        estudianteNombre: s.estudianteNombre,
+        estudianteCorreo: s.estudianteCorreo,
+        empresaNombre: s.empresaNombre,
+        fechaInicio: s.fechaInicio,
+        fechaFin: s.fechaFin,
+        formalizada: store().practicas.some((p) => p.numeroSolicitud === s.numero),
+      }));
   },
   async reenviarInvitacion(practicaId: string): Promise<Invitacion> {
     await demora();

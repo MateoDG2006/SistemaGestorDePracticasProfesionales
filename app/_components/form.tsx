@@ -103,11 +103,17 @@ export function Select({
   opciones: { valor: string; etiqueta: string }[];
   error?: string;
 }) {
+  // Base UI Select.Value muestra el raw value salvo que Root reciba `items`
+  // (mapa value→label). Sin eso se ve el UUID o el centinela __none__.
+  const items = Object.fromEntries(
+    opciones.map((o) => [o.valor === "" ? VACIO : o.valor, o.etiqueta]),
+  );
   const interno = value === "" ? VACIO : value;
   return (
     <UiSelect
       value={interno}
       onValueChange={(v) => onChange(!v || v === VACIO ? "" : String(v))}
+      items={items}
     >
       <SelectTrigger
         aria-invalid={!!error || undefined}

@@ -14,6 +14,7 @@ import {
   Button,
   Card,
   EmptyState,
+  EsqueletoFormulario,
   Mensaje,
   PageHeader,
   SectionTitle,
@@ -96,7 +97,7 @@ export default function Formalizar() {
     }
   }
 
-  if (cargando) return <div className="grid place-items-center py-24"><Spinner /></div>;
+  if (cargando) return <EsqueletoFormulario />;
 
   return (
     <>

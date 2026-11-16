@@ -11,8 +11,8 @@ async function main() {
 
   const estudiante = await prisma.usuario.upsert({
     where: { correo: "estudiante@utp.ac.pa" },
-    update: { passwordHash: password, nombre: "Ana Perez", activo: true },
-    create: { correo: "estudiante@utp.ac.pa", nombre: "Ana Perez", rol: "ESTUDIANTE", passwordHash: password },
+    update: { passwordHash: password, nombre: "Ana Pérez", activo: true },
+    create: { correo: "estudiante@utp.ac.pa", nombre: "Ana Pérez", rol: "ESTUDIANTE", passwordHash: password },
   });
   await prisma.perfilEstudiante.upsert({
     where: { usuarioId: estudiante.id },
@@ -41,19 +41,30 @@ async function main() {
     create: { correo: "asesor2@utp.ac.pa", nombre: "Dra. Luisa Rivas", rol: "ASESOR", passwordHash: password },
   });
 
-  await prisma.empresa.upsert({
-    where: { nombre_ruc: { nombre: "Tecnologias Istmo S.A.", ruc: "155-1-2024" } },
-    update: {},
-    create: {
-      nombre: "Tecnologias Istmo S.A.",
-      ruc: "155-1-2024",
-      direccion: "Ciudad de Panama",
-      telefono: "+507 300-0000",
-      correo: "rrhh@istmo.example",
-    },
+  const empresaExistente = await prisma.empresa.findFirst({
+    where: { ruc: "155-1-2024" },
   });
+  if (empresaExistente) {
+    await prisma.empresa.update({
+      where: { id: empresaExistente.id },
+      data: {
+        nombre: "Tecnologías Istmo S.A.",
+        direccion: "Ciudad de Panamá",
+      },
+    });
+  } else {
+    await prisma.empresa.create({
+      data: {
+        nombre: "Tecnologías Istmo S.A.",
+        ruc: "155-1-2024",
+        direccion: "Ciudad de Panamá",
+        telefono: "+507 300-0000",
+        correo: "rrhh@istmo.example",
+      },
+    });
+  }
 
-  console.log("Seed completado. Contrasena de todos los usuarios: Practica123");
+  console.log("Seed completado. Contraseña de todos los usuarios: Practica123");
 }
 
 main()

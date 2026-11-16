@@ -35,6 +35,40 @@ export async function consultarBandeja(pagina = 1, tamano = 20) {
   };
 }
 
+/** Solicitudes que sugieren a este asesor (aún no formalizadas o en trámite). */
+export async function consultarSugeridasParaAsesor(asesorId: string) {
+  const sols = await prisma.solicitud.findMany({
+    where: {
+      asesorSugeridoId: asesorId,
+      estado: {
+        in: [
+          EstadoSolicitud.ENVIADA,
+          EstadoSolicitud.DEVUELTA,
+          EstadoSolicitud.APROBADA,
+          EstadoSolicitud.BORRADOR,
+        ],
+      },
+    },
+    orderBy: { creadaEn: "desc" },
+    include: {
+      estudiante: { select: { nombre: true, correo: true } },
+      empresa: { select: { nombre: true } },
+      practica: { select: { id: true } },
+    },
+  });
+  return sols.map((s) => ({
+    id: s.id,
+    numero: s.numero,
+    estado: s.estado,
+    estudianteNombre: s.estudiante.nombre,
+    estudianteCorreo: s.estudiante.correo,
+    empresaNombre: s.empresa?.nombre ?? "",
+    fechaInicio: dia(s.fechaInicio),
+    fechaFin: dia(s.fechaFin),
+    formalizada: Boolean(s.practica),
+  }));
+}
+
 export async function consultarMias(estudianteId: string) {
   const sols = await prisma.solicitud.findMany({
     where: { estudianteId },
