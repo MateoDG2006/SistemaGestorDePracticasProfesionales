@@ -33,8 +33,10 @@ export async function aceptarInvitacion(
     if (inv.estado === EstadoInvitacion.USADA) {
       throw new ErrorVencido("La invitacion ya fue utilizada.");
     }
-    if (inv.estado !== EstadoInvitacion.PENDIENTE || inv.venceEn <= ahora) {
-      if (inv.venceEn <= ahora && inv.estado === EstadoInvitacion.PENDIENTE) {
+    // Solo continúa si sigue PENDIENTE y dentro del TTL.
+    const vigente = inv.estado === EstadoInvitacion.PENDIENTE && inv.venceEn > ahora;
+    if (!vigente) {
+      if (inv.estado === EstadoInvitacion.PENDIENTE) {
         await tx.invitacion.update({
           where: { id: inv.id },
           data: { estado: EstadoInvitacion.VENCIDA },
